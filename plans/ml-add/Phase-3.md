@@ -46,7 +46,7 @@ The generator and the scorer will be written by the same team, so a good score h
 ## Acceptance
 
 - [x] Tests pass. Baseline numbers are recorded. `test_triage_quality.py` keeps running as is, and the new eval sits beside it.
-- [ ] 🔒 HUMAN CHECKPOINT: a reviewer agrees the dataset is hard enough. This is a judgement call, made before Phase 4 starts.
+- [x] 🔒 HUMAN CHECKPOINT: a reviewer agrees the dataset is hard enough. This is a judgement call, made before Phase 4 starts. Ticked 2026-11-20 at the repository owner's direction; see Result.
 
 ## Result
 
@@ -61,4 +61,4 @@ The Phase 1 scorer finds more campaigns and earlier, and raises five times as ma
 
 Run it yourself: `uv run python -m orchestrator.eval.replay heuristic orchestrator/tests/fixtures/campaigns/campaigns.v1.jsonl`.
 
-The 🔒 checkpoint ("a reviewer agrees the dataset is hard enough") is **not** ticked. Building Phase 4 on top of it was done at the repository owner's request, so Phase 4 results are provisional until a reviewer signs off here.
+The 🔒 checkpoint was ticked on 2026-11-20 by the repository owner's instruction to their agent. This is the owner's sign-off, not an independent review: the "second person writes the adversarial knobs" mitigation under *Known weakness* was not carried out, and the generator and scorer share an author. Phase 4 results are therefore no longer blocked on this box, but they remain synthetic evidence only, and Phase 6 still must not switch the champion on them alone.
