@@ -33,3 +33,5 @@ docker compose -f deploy/compose.yaml config --quiet
 ## Change boundaries
 
 Event and action compatibility starts with the `contract-steward` skill. Build work uses `pipeline-builder`; lab verification uses `lab-validator`; live operations use `hunt-operator` and `mitigation-guardian`. Update `docs/DECISIONS/` when changing a trust boundary or persistence contract.
+
+Proposed refactors and cleanup are scored with `refactor-eval` before any edit. A Critical or High flag stops the work for explicit, per-candidate human approval; a score below 20 is not refactored at all.
