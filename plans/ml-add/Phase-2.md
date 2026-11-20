@@ -1,6 +1,6 @@
 # Phase 2: Append-only evidence ledger (K1)
 
-**Status:** proposed · **Derived from:** [README.md](README.md), ADR 0004 (planned, [Phase-0.md](Phase-0.md)) · **Updated:** 2026-11-20
+**Status:** accepted · **Derived from:** [README.md](README.md), ADR 0004 (accepted, [Phase-0.md](Phase-0.md)) · **Updated:** 2026-11-20
 
 **Depends on:** Phases 0 and 1. **Blocks:** Phases 3–5.
 
@@ -16,7 +16,7 @@ The source bundles K1 and K13. K1 can be built entirely in Python, outside the d
 
 **In**
 
-1. `orchestrator/ledger.py` (planned). Records go into the store chosen in ADR 0004. Each record is:
+1. `orchestrator/ledger.py`. Records go into the store chosen in ADR 0004. Each record is:
 
    ```
    {seq, prev_hash, record_hash, event, evidence[{key, value, class}],
@@ -44,9 +44,13 @@ The source bundles K1 and K13. K1 can be built entirely in Python, outside the d
 
 ## Acceptance
 
-- [ ] Tests pass, and `verify_chain` runs in CI against a fixture ledger.
-- [ ] A test proves no graph node imports `orchestrator.ledger` for reading.
+- [x] Tests pass, and `verify_chain` runs in CI against a fixture ledger.
+- [x] A test proves no graph node imports `orchestrator.ledger` for reading.
 
 ## Rollback
 
 Revert. Decision logic does not change.
+
+## Result
+
+The record is written by a `record` node after `approval`, and only when `build_graph(ledger=...)` is given one. A run that is waiting for an operator is not recorded until the decision is made, so the ledger holds completed runs. `python -m orchestrator.ledger verify PATH` exits 0 when intact, 1 with the first bad record, and 2 for a missing file. Known limit: removing the newest records leaves a valid shorter chain, so the head hash needs to be stored elsewhere to catch truncation.

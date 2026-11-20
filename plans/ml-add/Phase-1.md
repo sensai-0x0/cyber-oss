@@ -1,6 +1,6 @@
 # Phase 1: Evidence provenance classes (K12)
 
-**Status:** proposed · **Derived from:** [README.md](README.md), [Phase-0.md](Phase-0.md), SHR-008 · **Updated:** 2026-11-20
+**Status:** accepted · **Derived from:** [README.md](README.md), [Phase-0.md](Phase-0.md), SHR-008 · **Updated:** 2026-11-20
 
 **Depends on:** Phase 0. **Blocks:** Phases 2–4.
 
@@ -20,7 +20,7 @@ Every attribute the scorer reads carries one of three provenance classes. The AS
 
 **In**
 
-1. `orchestrator/provenance.py` (planned):
+1. `orchestrator/provenance.py`:
    - the allowlist table, kept as data so it can be diffed against `hunterd/probes/` in review
    - `classify(source, key) -> Class`
    - DERIVED lookups against a pinned artefact
@@ -29,7 +29,7 @@ Every attribute the scorer reads carries one of three provenance classes. The AS
    - parses them strictly, so the string `"false"` no longer counts as truthy and non-integers do not raise
    - adds a `dropped_asserted: [...]` list to `IntelScore`
 3. A contract test asserting the allowlist matches the attribute keys produced by `normalizeTLSResponse` and `normalizeHTTPResponse`. It reads a JSON fixture that a Go test writes out, so the two languages cannot drift apart silently.
-4. The pinned lab badlist: `lab/fixtures/badlist.v1.json` (planned). It holds synthetic values only.
+4. The pinned lab badlist: `lab/fixtures/badlist.v1.json`. It holds synthetic values only.
 
 **Out:** learned weights. The weights stay hand-set in this phase.
 
@@ -46,9 +46,13 @@ At HEAD, the scorer catches none of the 30 staging fixtures (recall 0.0, from `o
 
 ## Acceptance
 
-- [ ] Tests pass. `test_triage_quality.py` output is updated, and the drop in recall is noted in the merge message.
-- [ ] SHR-008 stays open in the review register, annotated as "mitigated on scoring path; producer unauthenticated".
+- [x] Tests pass. `test_triage_quality.py` output is updated, and the drop in recall is noted in the merge message.
+- [x] SHR-008 stays open in the review register, annotated as "mitigated on scoring path; producer unauthenticated".
 
 ## Rollback
 
 Revert. The scorer goes back to trusting producer flags, while Phase 0's kill switch still keeps a human in the loop.
+
+## Result
+
+Built as specified. Two independent badlist hits (`jarm` and `ja3` on `tlsx`, or `favicon_mmh3` on `httpx`) are DERIVED evidence, each worth a hand-set weight in `orchestrator/score.py`. Recall on the 30 staging fixtures stays 0.0, as predicted, because those fixtures rely on asserted flags. Consequence to know before Phase 4: no real event can reach the default mitigation threshold from one indicator alone, so mitigation proposals are now rare by design.

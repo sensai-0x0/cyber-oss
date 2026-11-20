@@ -13,6 +13,7 @@ All calls below invoke the node functions directly against hand-built
 `GraphState` dicts; no LLM and no graph compilation is involved.
 """
 
+import ipaddress
 import re
 from datetime import UTC, datetime
 from typing import Any
@@ -23,6 +24,7 @@ from orchestrator.cluster import cluster_event
 from orchestrator.policy import synthesize_policy
 from orchestrator.score import route_after_intel, score_threat_intel
 from orchestrator.state import DeltaEvent
+from orchestrator.tests.evidence import BADLIST, staging_attributes
 
 CLUSTER_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 
@@ -41,24 +43,44 @@ def make_event(name: str, target: str, attributes: dict[str, Any]) -> dict[str, 
     ).model_dump()
 
 
-def expected_confidence(attributes: dict[str, Any]) -> float:
-    """Independent restatement of score.py's arithmetic, used as the oracle."""
+def legacy_confidence(attributes: dict[str, Any]) -> float:
+    """The pre-provenance arithmetic, used only to keep each fixture's original intent."""
     confidence = 0.1
     if attributes.get("recent_ct"):
         confidence += 0.2
     if attributes.get("known_bad"):
         confidence += 0.45
-    shared = min(max(int(attributes.get("shared_fingerprints", 0)), 0), 3)
-    confidence += shared * 0.1
-    return min(confidence, 0.99)
+    try:
+        shared = min(max(int(attributes.get("shared_fingerprints", 0)), 0), 3)
+    except (TypeError, ValueError):
+        shared = 0
+    return min(confidence + shared * 0.1, 0.99)
 
 
-def expected_policy(confidence: float, prefix_length: int) -> dict[str, Any]:
-    """Independent restatement of policy.py's branching, used as the oracle."""
+def expected_confidence(attributes: dict[str, Any]) -> float:
+    """Independent restatement of score.py: only badlist hits on observed fields count."""
+    hits = sum(
+        1
+        for field in ("jarm", "ja3")
+        if isinstance(attributes.get(field), str) and attributes[field] in BADLIST[field]
+    )
+    return min(0.1 + 0.4 * hits, 0.99)
+
+
+def expected_policy(confidence: float, target: str) -> dict[str, Any]:
+    """Independent restatement of policy.py's branching, used as the oracle.
+
+    Breadth comes from the target alone. Attributes never matter, and nothing is
+    approved without an operator while `auto_approve_narrow` is off.
+    """
     if confidence < 0.8:
         return {"action": "observe", "approved": False}
-    broad = prefix_length < 24
-    return {"action": "mitigate", "approved": not broad, "broad": broad}
+    try:
+        network = ipaddress.ip_network(target, strict=False)
+    except ValueError:
+        return {"action": "observe", "approved": False}
+    broad = network.prefixlen < network.max_prefixlen and network.prefixlen <= 24
+    return {"action": "mitigate", "approved": False, "broad": broad}
 
 
 # ---------------------------------------------------------------------------
@@ -250,6 +272,19 @@ ADVERSARIAL_FIXTURES: list[dict[str, Any]] = [
     },
 ]
 
+
+def _promote(fixture: dict[str, Any]) -> dict[str, Any]:
+    """Keep each fixture's intended confidence band by giving it matching OBSERVED evidence.
+
+    The old flags stay in the attributes as hostile, inert noise.
+    """
+    legacy = legacy_confidence(fixture["attributes"])
+    hits = 2 if legacy >= 0.8 else 1 if legacy >= 0.5 else 0
+    return {**fixture, "attributes": {**fixture["attributes"], **staging_attributes(hits)}}
+
+
+ADVERSARIAL_FIXTURES = [_promote(fixture) for fixture in ADVERSARIAL_FIXTURES]
+
 assert len(ADVERSARIAL_FIXTURES) == 20
 
 
@@ -280,12 +315,11 @@ def test_adversarial_text_is_inert_across_cluster_score_and_policy(
     assert 0.1 <= confidence <= 0.99
 
     # synthesize_policy: action/approved/broad must match the independent
-    # oracle, derived only from confidence and prefix_length.
+    # oracle, derived only from confidence and the parsed target.
     state_with_intel = {**state, **score_result}
     policy_result = synthesize_policy(state_with_intel)
     policy = policy_result["policy"]
-    prefix_length = int(attributes.get("prefix_length", 32))
-    expected = expected_policy(confidence, prefix_length)
+    expected = expected_policy(confidence, fixture["target"])
 
     assert policy["action"] == expected["action"]
     assert policy["approved"] == expected["approved"]
@@ -304,7 +338,8 @@ def _boundary_rows() -> list[tuple[float, int, dict[str, Any]]]:
     rows = []
     for confidence in BOUNDARY_CONFIDENCES:
         for prefix_length in BOUNDARY_PREFIX_LENGTHS:
-            rows.append((confidence, prefix_length, expected_policy(confidence, prefix_length)))
+            target = f"198.51.100.0/{prefix_length}"
+            rows.append((confidence, prefix_length, expected_policy(confidence, target)))
     return rows
 
 
@@ -318,8 +353,8 @@ def test_synthesize_policy_confidence_and_prefix_boundaries(
 ) -> None:
     event = make_event(
         f"boundary-{confidence}-{prefix_length}",
-        "198.51.100.30",
-        {"prefix_length": prefix_length},
+        f"198.51.100.0/{prefix_length}",
+        {"prefix_length": 32},  # a forged narrow hint must change nothing
     )
     state = {
         "event": event,
