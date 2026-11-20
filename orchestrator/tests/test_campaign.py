@@ -141,7 +141,12 @@ class Exploding:
 def graph_outcome(compiled, value):
     result = compiled.invoke({"event": value}, config={"configurable": {"thread_id": "t"}})
     interrupt = result.pop("__interrupt__", None)
-    return result, interrupt[0].value if interrupt else None
+    result.pop("proposal", None)  # the ledger citation, absent without a ledger (ADR 0005)
+    payload = dict(interrupt[0].value) if interrupt else None
+    if payload:
+        payload.pop("ledger_seq", None)
+        payload.pop("evidence_digest", None)
+    return result, payload
 
 
 def test_a_raising_challenger_is_recorded_and_the_champion_is_unaffected(tmp_path):
@@ -167,7 +172,7 @@ def test_challenger_output_lands_only_in_the_ledger_record(tmp_path):
     compiled.invoke({"event": ev("r1", jarm=BAD_JARM, ja3=BAD_JA3)}, config=config)
     final = compiled.invoke(Command(resume={"approved": False}), config=config)
     assert "challengers" not in final and SCORER_ID not in json.dumps(final, default=str)
-    record = json.loads(ledger.records()[0][2])
+    record = json.loads(ledger.records()[-1][2])  # the decision record, after the proposal
     assert record["challengers"][SCORER_ID]["campaign_id"]
     assert record["challengers"]["exploding.v1"]["error"] == "RuntimeError: boom"
 

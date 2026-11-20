@@ -1,14 +1,28 @@
 package enforcerd
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
+
+	"github.com/metacogna/sentinel-hunter/canonjson"
 )
+
+var evidenceDigest = regexp.MustCompile(`^[0-9a-f]{64}$`)
+
+// schemaVersion returns the signed schema version, treating the zero value as v1.
+func (a Action) schemaVersion() string {
+	if a.Version == "" {
+		return "v1"
+	}
+	return a.Version
+}
 
 // SignAction signs the canonical action, including its approval and deadline.
 func SignAction(privateKey ed25519.PrivateKey, action *Action) error {
@@ -56,6 +70,19 @@ func canonicalAction(action Action) ([]byte, error) {
 	if !expiresAt.Equal(action.CreatedAt.Add(action.TTL)) {
 		return nil, errors.New("action expiry does not match TTL")
 	}
+	switch action.schemaVersion() {
+	case "v1":
+		if action.EvidenceDigest != "" || action.LedgerSeq != 0 {
+			return nil, errors.New("v1 action must not carry evidence fields")
+		}
+	case "v2":
+		if !evidenceDigest.MatchString(action.EvidenceDigest) || action.LedgerSeq < 0 {
+			return nil, errors.New("v2 action needs a lowercase SHA-256 evidence digest and a ledger sequence")
+		}
+		return canonicalV2(action, expiresAt.UTC())
+	default:
+		return nil, fmt.Errorf("unknown action version %q", action.Version)
+	}
 	wire := struct {
 		Version    string    `json:"schema_version"`
 		ID         string    `json:"action_id"`
@@ -75,15 +102,56 @@ func canonicalAction(action Action) ([]byte, error) {
 	return json.Marshal(wire)
 }
 
+// canonicalV2 is the v1 field list in the same order plus the evidence citation. The version
+// is signed, so a v1 signature cannot verify as v2 or the reverse.
+func canonicalV2(action Action, expiresAt time.Time) ([]byte, error) {
+	fields := canonjson.Object{
+		{Key: "schema_version", Value: "v2"}, {Key: "action_id", Value: action.ID},
+		{Key: "kind", Value: string(action.Kind)}, {Key: "target", Value: action.Target},
+		{Key: "broad", Value: action.Broad}, {Key: "approved", Value: action.Approved},
+	}
+	if action.ApprovedBy != "" {
+		fields = append(fields, canonjson.Member{Key: "approved_by", Value: action.ApprovedBy})
+	}
+	fields = append(fields,
+		canonjson.Member{Key: "ttl_seconds", Value: int64(action.TTL / time.Second)},
+		canonjson.Member{Key: "created_at", Value: action.CreatedAt.UTC().Format(time.RFC3339Nano)},
+		canonjson.Member{Key: "expires_at", Value: expiresAt.Format(time.RFC3339Nano)},
+		canonjson.Member{Key: "evidence_digest", Value: action.EvidenceDigest},
+		canonjson.Member{Key: "ledger_seq", Value: action.LedgerSeq},
+	)
+	var out bytes.Buffer
+	if err := canonjson.Write(&out, fields); err != nil {
+		return nil, err
+	}
+	return out.Bytes(), nil
+}
+
 // SignedBackend verifies authorization before delegating to an RPZ/nft backend.
 type SignedBackend struct {
 	PublicKey ed25519.PublicKey
 	Backend   Backend
+	// Breadth is required. Broad is derived from the target here, never trusted from the caller (SHR-001).
+	Breadth Breadth
+	// MinVersion is the oldest accepted schema version. Empty means "v1" during the ADR 0005
+	// compatibility window; set "v2" at the cut-over.
+	MinVersion string
 }
 
 func (s SignedBackend) Apply(ctx context.Context, action Action) error {
 	if s.Backend == nil {
 		return errors.New("signed backend is not configured")
+	}
+	switch s.MinVersion {
+	case "", "v1", "v2":
+	default:
+		return fmt.Errorf("signed backend: unknown MinVersion %q", s.MinVersion) // fail closed on a typo
+	}
+	if s.MinVersion == "v2" && action.schemaVersion() != "v2" {
+		return fmt.Errorf("%w: need v2, got %s", ErrVersionTooOld, action.schemaVersion())
+	}
+	if err := s.Breadth.Check(action.Target, action.Broad); err != nil {
+		return err
 	}
 	if action.Broad && (!action.Approved || action.ApprovedBy == "") {
 		return fmt.Errorf("%w: named operator approver is required", ErrApprovalRequired)
