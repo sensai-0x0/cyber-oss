@@ -22,3 +22,9 @@ The delta read/compare/write runs in one Badger update transaction. After TTL ex
 `schemas/mitigation_action.v1.json` covers deployable signed actions. Canonical Ed25519 payloads include the exact action ID, kind, target, scope, approval, approver, TTL seconds, creation, and expiry. `Signature` is the only unsigned field. The enforcer retains an action if backend revocation fails, enabling retry and alerting.
 
 An operator rejection is a review result, not a deployable MitigationAction: it has no signature and must never reach an enforcement backend.
+
+## Decision log
+
+Dated entries for recorded decisions, most recent last. Format: `YYYY-MM-DD: <what changed>, <old> -> <new>, approved by <who>.`
+
+- 2026-11-21: initial `orchestrator/policy.yaml` defaults (`mitigation_confidence: 0.8`, `broad_prefix_threshold: 24`, `default_ttl_seconds: 900`, `min_approved_ttl_seconds: 60`, `max_approved_ttl_seconds: 86400`, `max_refinement_cycles: 2`) approved per the Human Checkpoint in `plans/planv1.0/PHASE0.md` P0.3.
