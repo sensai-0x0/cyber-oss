@@ -31,20 +31,33 @@ _HOSTNAME = re.compile(
 )
 
 
+def _is_port(text: str) -> bool:
+    return text.isascii() and text.isdigit() and 0 < int(text) <= 65535
+
+
 def classify_target(target: str, config: dict[str, Any] | None = None) -> dict[str, Any] | None:
-    """Derive kind, prefix length and breadth from the target alone.
+    """Derive kind, prefix length, breadth and the bare target from the target alone.
 
     Nothing in the event's attributes and no first-character guess is consulted.
-    Returns None when the target is not an address, a range or a hostname.
+    Returns None when the target is not an address, a range or a hostname. The rules
+    mirror `enforcerd.Breadth.Derive`, which re-derives breadth from `target` and is the
+    authority (I7): an IPv4-mapped range is judged at its IPv4 width and one wider than
+    the mapped block is refused, as is a zoned address.
     """
     config = config or load_policy()
     text = target.strip()
     if "://" in text:
         text = urlsplit(text).hostname or ""
     elif "/" not in text and text.count(":") == 1:
-        text = text.rsplit(":", 1)[0]  # host:port
+        text, port = text.rsplit(":", 1)  # host:port
+        if not _is_port(port):
+            return None
     elif text.startswith("[") and "]" in text:
-        text = text[1 : text.index("]")]  # [v6]:port
+        close = text.index("]")
+        rest = text[close + 1 :]  # [v6] or [v6]:port
+        if rest and not (rest.startswith(":") and _is_port(rest[1:])):
+            return None
+        text = text[1:close]
     if not text:
         return None
     try:
@@ -52,17 +65,28 @@ def classify_target(target: str, config: dict[str, Any] | None = None) -> dict[s
     except ValueError:
         network = None
     if network is not None:
-        limit = (
+        # Judge the address as written, before masking, so ::ffff:0:0/80 is seen as mapped.
+        written = ipaddress.ip_address(text.split("/", 1)[0])
+        if isinstance(written, ipaddress.IPv6Address) and written.scope_id:
+            return None
+        bits, width, limit = (
+            network.prefixlen,
+            network.max_prefixlen,
             config["broad_prefix_threshold"]
             if network.version == 4
-            else config["broad_prefix_threshold_v6"]
+            else config["broad_prefix_threshold_v6"],
         )
+        if isinstance(written, ipaddress.IPv6Address) and written.ipv4_mapped is not None:
+            if bits < 96:
+                return None  # straddles the IPv4-mapped block
+            bits, width, limit = bits - 96, 32, config["broad_prefix_threshold"]
         # A range at or below the threshold is broad, so a /24 needs an operator.
-        broad = network.prefixlen < network.max_prefixlen and network.prefixlen <= limit
-        return {"kind": "nftables", "prefix_len": network.prefixlen, "broad": broad}
+        broad = bits < width and bits <= limit
+        bare = str(network) if "/" in text else str(network.network_address)
+        return {"kind": "nftables", "prefix_len": network.prefixlen, "broad": broad, "target": bare}
     name = text.lower()
-    if _HOSTNAME.match(name):
-        return {"kind": "rpz", "prefix_len": None, "broad": False}
+    if _HOSTNAME.fullmatch(name):  # fullmatch: Python's $ would allow a trailing newline
+        return {"kind": "rpz", "prefix_len": None, "broad": False, "target": name}
     return None
 
 
@@ -93,7 +117,8 @@ def synthesize_policy(state: GraphState) -> dict[str, Any]:
     policy: Policy = {
         "action": "mitigate",
         "action_id": f"mit-{event.event_id}",
-        "target": event.target,
+        # The bare form that was classified, so enforcerd judges the same string (SHR-001).
+        "target": derived["target"],
         "kind": derived["kind"],
         "broad": broad,
         # Only a narrow action can skip the operator, and only when policy allows it.
@@ -130,6 +155,7 @@ def approve_policy(state: GraphState) -> dict[str, Any]:
     if policy["action"] != "mitigate" or policy["approved"]:
         return {}
     config = load_policy()
+    proposal = state.get("proposal") or {}
     decision = interrupt(
         {
             "type": "approval_required",
@@ -138,6 +164,8 @@ def approve_policy(state: GraphState) -> dict[str, Any]:
             "broad": policy["broad"],
             "confidence": state["intel"]["confidence"],
             "max_ttl_seconds": config["max_approved_ttl_seconds"],
+            # The ledger record the operator reviews (ADR 0005); absent when no ledger is wired.
+            **{key: proposal[key] for key in ("ledger_seq", "evidence_digest") if key in proposal},
         }
     )
     return {"policy": apply_decision(policy, decision, config)}

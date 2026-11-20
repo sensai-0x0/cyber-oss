@@ -7,7 +7,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
 
 from orchestrator.cluster import cluster_event
-from orchestrator.ledger import Challenger, LedgerWriter, make_record_node
+from orchestrator.ledger import Challenger, LedgerWriter, make_propose_node, make_record_node
 from orchestrator.policy import approve_policy, synthesize_policy
 from orchestrator.score import route_after_intel, score_threat_intel
 from orchestrator.state import GraphState
@@ -35,10 +35,14 @@ def build_graph(
     builder.add_conditional_edges(
         "intel", route_after_intel, {"cluster": "cluster", "mitigate": "mitigate"}
     )
-    builder.add_edge("mitigate", "approval")
     if ledger is None:
+        builder.add_edge("mitigate", "approval")
         builder.add_edge("approval", END)
     else:
+        # The proposal is recorded before review so the operator can cite it (ADR 0005).
+        builder.add_node("propose", make_propose_node(ledger))
+        builder.add_edge("mitigate", "propose")
+        builder.add_edge("propose", "approval")
         builder.add_node("record", make_record_node(ledger, challengers))
         builder.add_edge("approval", "record")
         builder.add_edge("record", END)

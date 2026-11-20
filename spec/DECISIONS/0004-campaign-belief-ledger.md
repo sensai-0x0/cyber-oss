@@ -27,3 +27,7 @@
 ## Addendum (Phase 4): refinement loop, SHR-014
 
 Decision: the refinement cycle (`route_after_intel` returning to `cluster`) is to be removed. On the Phase 3 dataset the policy is identical with refinement on and off (`orchestrator/tests/test_campaign.py`), since the second pass repeats a deterministic computation whose output the scorer does not read. The removal touches the `cycles` state key, `max_refinement_cycles` and `AMBIGUOUS_FLOOR`, so it is a separate change with its own tests. Until then the loop stays and is bounded by `max_refinement_cycles`.
+
+## Addendum (Phase 5 prerequisite): Go derives `broad`, SHR-001
+
+`enforcerd.Breadth.Derive` classifies the target in Go with the thresholds in `orchestrator/policy.yaml` (`ParseBreadth` reads the same two keys as Python). `operator.Approve` refuses to sign, and `SignedBackend.Apply` refuses to install, an action whose `broad` disagrees (`ErrBroadMismatch`). Targets that are not a plain address, CIDR or hostname are rejected, and an unconfigured `Breadth` fails closed. Residual: a bare `Enforcer` still trusts `Action.Broad` (SHR-009), and the JSONL review entry's status is for the reviewer to change.

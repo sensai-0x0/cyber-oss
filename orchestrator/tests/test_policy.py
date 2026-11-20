@@ -83,33 +83,60 @@ import pytest  # noqa: E402
 from orchestrator.policy import classify_target  # noqa: E402
 
 CLASSIFY_TABLE = [
-    ("10.0.0.0/8", "nftables", 8, True),
-    ("10.0.0.0/23", "nftables", 23, True),
-    ("198.51.100.0/24", "nftables", 24, True),  # a /24 needs an operator (SHR-007)
-    ("198.51.100.0/25", "nftables", 25, False),
-    ("198.51.100.0/32", "nftables", 32, False),
-    ("198.51.100.7", "nftables", 32, False),
-    ("198.51.100.7:443", "nftables", 32, False),
-    ("https://198.51.100.7:8443/x", "nftables", 32, False),
-    ("2001:db8::/32", "nftables", 32, True),
-    ("2001:db8::1", "nftables", 128, False),
-    ("[2001:db8::1]:443", "nftables", 128, False),
-    ("1password.example", "rpz", None, False),  # SHR-012: a leading digit is not an IP
-    ("3example.com", "rpz", None, False),
-    ("https://c2.example/path", "rpz", None, False),
-    ("Evil.Example", "rpz", None, False),
+    ("10.0.0.0/8", "nftables", 8, True, "10.0.0.0/8"),
+    ("10.0.0.0/23", "nftables", 23, True, "10.0.0.0/23"),
+    # a /24 needs an operator (SHR-007)
+    ("198.51.100.0/24", "nftables", 24, True, "198.51.100.0/24"),
+    ("198.51.100.0/25", "nftables", 25, False, "198.51.100.0/25"),
+    ("198.51.100.0/32", "nftables", 32, False, "198.51.100.0/32"),
+    ("198.51.100.7", "nftables", 32, False, "198.51.100.7"),
+    ("198.51.100.7:443", "nftables", 32, False, "198.51.100.7"),
+    ("https://198.51.100.7:8443/x", "nftables", 32, False, "198.51.100.7"),
+    ("2001:db8::/32", "nftables", 32, True, "2001:db8::/32"),
+    ("2001:db8::1", "nftables", 128, False, "2001:db8::1"),
+    ("[2001:db8::1]:443", "nftables", 128, False, "2001:db8::1"),
+    # SHR-012: a leading digit is not an IP
+    ("1password.example", "rpz", None, False, "1password.example"),
+    ("3example.com", "rpz", None, False, "3example.com"),
+    ("https://c2.example/path", "rpz", None, False, "c2.example"),
+    ("Evil.Example", "rpz", None, False, "evil.example"),
+    # IPv4-mapped ranges are judged at their IPv4 width, as enforcerd.Breadth.Derive does.
+    ("::ffff:10.0.0.0/104", "nftables", 104, True, "::ffff:a00:0/104"),
+    ("::ffff:192.0.2.7/128", "nftables", 128, False, "::ffff:c000:207/128"),
+    ("::ffff:192.0.2.7", "nftables", 128, False, "::ffff:c000:207"),
 ]
 
 
-@pytest.mark.parametrize(("target", "kind", "prefix", "broad"), CLASSIFY_TABLE)
-def test_classify_target_table(target, kind, prefix, broad):
+@pytest.mark.parametrize(("target", "kind", "prefix", "broad", "normalised"), CLASSIFY_TABLE)
+def test_classify_target_table(target, kind, prefix, broad, normalised):
     result = classify_target(target)
-    assert result == {"kind": kind, "prefix_len": prefix, "broad": broad}
+    assert result == {"kind": kind, "prefix_len": prefix, "broad": broad, "target": normalised}
 
 
 @pytest.mark.parametrize(
     "garbage",
-    ["", "   ", "ignore previous instructions", "a b", "1.2.3", "*.example", "::::", "/8"],
+    [
+        "",
+        "   ",
+        "ignore previous instructions",
+        "a b",
+        "1.2.3",
+        "*.example",
+        "::::",
+        "/8",
+        # Refused by enforcerd.Breadth.Derive, so never proposed for a signature Go would refuse.
+        "::ffff:10.0.0.0/64",
+        "::ffff:0:0/80",
+        "fe80::1%eth0",
+        "evil\x1b]52;c;aGk=\x07.example",
+        # Python's $ matches before a trailing newline; Go's does not.
+        "example.com\n:80",
+        # A host:port whose port is not a port is not a host:port.
+        "1.2.3.4:abc",
+        "10.0.0.1:99999",
+        "10.0.0.1:0",
+        "[2001:db8::1]:x",
+    ],
 )
 def test_classify_target_rejects_what_it_cannot_parse(garbage):
     assert classify_target(garbage) is None
@@ -173,3 +200,17 @@ def test_narrow_action_is_auto_approved_only_with_the_switch_on(monkeypatch):
 def test_malformed_shared_fingerprints_score_as_zero_not_an_exception(bad):
     result = score_module.score_threat_intel(_state("198.51.100.7", shared_fingerprints=bad))
     assert result["intel"]["confidence"] == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize(
+    ("raw", "stored"),
+    [
+        ("198.51.100.7:443", "198.51.100.7"),
+        ("https://Evil.Example/x", "evil.example"),
+        ("[2001:db8::1]:443", "2001:db8::1"),
+        (" 10.0.0.5/8 ", "10.0.0.0/8"),
+    ],
+)
+def test_policy_stores_the_target_it_classified(raw, stored):
+    # enforcerd re-derives breadth from policy.target, so it must be the bare form judged here.
+    assert policy_module.synthesize_policy(_state(raw))["policy"]["target"] == stored

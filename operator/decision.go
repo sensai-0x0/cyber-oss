@@ -9,12 +9,16 @@ import (
 	"github.com/metacogna/sentinel-hunter/enforcerd"
 )
 
-func Approve(action enforcerd.Action, privateKey ed25519.PrivateKey, name string, ttl time.Duration, now time.Time) (enforcerd.Action, error) {
+func Approve(action enforcerd.Action, privateKey ed25519.PrivateKey, name string, ttl time.Duration, now time.Time, breadth enforcerd.Breadth) (enforcerd.Action, error) {
 	if name == "" {
 		return enforcerd.Action{}, errors.New("operator name is required")
 	}
 	if ttl <= 0 || ttl > enforcerd.MaxTTL {
 		return enforcerd.Action{}, enforcerd.ErrInvalidTTL
+	}
+	// Broad is derived from the target; a claimed flag that disagrees is refused, never signed (SHR-001).
+	if err := breadth.Check(action.Target, action.Broad); err != nil {
+		return enforcerd.Action{}, err
 	}
 	action.TTL = ttl
 	action.Approved = true

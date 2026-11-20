@@ -2,7 +2,7 @@
 
 **Status:** proposed · **Derived from:** [README.md](README.md), [Phase-2.md](Phase-2.md), `schemas/mitigation_action.v1.json`, [../../spec/DECISIONS/0002-reversible-mitigation.md](../../spec/DECISIONS/0002-reversible-mitigation.md) · **Updated:** 2026-11-20
 
-**Depends on:** Phase 2 and its own ADR, `spec/DECISIONS/0005-mitigation-action-v2.md` (planned). **Blocks:** nothing in this plan. It can be built alongside Phases 3 and 4.
+**Depends on:** Phase 2 and its own ADR, `spec/DECISIONS/0005-mitigation-action-v2.md` (accepted). **Blocks:** nothing in this plan. It can be built alongside Phases 3 and 4.
 
 ## Goal
 
@@ -39,9 +39,15 @@ Run the `contract-steward` skill (`.agents/skills/contract-steward/SKILL.md`) be
 
 ## Acceptance
 
-- [ ] ADR 0005 is accepted. Both schemas are tested in `orchestrator/tests/test_schemas.py`.
+- [x] ADR 0005 is accepted (2026-11-20, owner). Both schemas are tested in `orchestrator/tests/test_schemas.py`.
 - [ ] `/security-review` runs on the diff. It is mandatory here, because the diff touches invariants.
 - [ ] 🔒 HUMAN CHECKPOINT: the trust-boundary change is signed off.
+
+## Result
+
+Built on `claude/bold-mccarthy-bsf51t` against ADR 0005 (see its implementation notes). The `propose` record is appended before review, so the interrupt carries `ledger_seq` and `evidence_digest`. A mitigation whose proposal cannot be recorded in 3 attempts becomes `observe`, which reverses Phase 2's fail-open rule for mitigations only. `operator review -ledger` verifies the chain through the cited record, shows the evidence and signs v2. `SignedBackend.MinVersion` is left at v1 until the cut-over. Both schemas and the shared golden vectors are tested in `orchestrator/tests/test_schemas.py` and the Go packages.
+
+Not done: `/security-review` (the skill would not load here, so only a manual review was done on the diff), the human trust-boundary sign-off, and scheduling the cut-over.
 
 ## Rollback
 
