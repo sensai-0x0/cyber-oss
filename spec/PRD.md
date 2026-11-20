@@ -1,3 +1,7 @@
+**Status:** superseded as a layout by [DECISIONS/0003-architecture-authority.md](DECISIONS/0003-architecture-authority.md); its behavioural requirements remain in force · **Derived from:** original product brief · **Updated:** 2026-11-21
+
+> The file paths in this document (`cmd/hunter`, `pkg/*`, `mission.yaml`, `agent/*`) were never built. Read every requirement as owned by the component named in ADR 0003's mapping table.
+
 Sentinel-Lite: Triaged Product Requirements Document (PRD)
 
 Triage Philosophy & Execution Order

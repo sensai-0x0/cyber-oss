@@ -6,7 +6,7 @@ This document is the master index for Sentinel Hunter's build-out. It is derived
 
 ## 0. Reconciling the spec before anything else
 
-`spec/PRD.md` ("Sentinel-Lite") describes required *behavior* (policy loading, Feistel permutation, delta gating, tiered autonomy, TTL-bounded mitigation, chaos hardening) against an earlier *file layout*: a single `cmd/hunter` MCP stdio binary, `pkg/cidr`/`pkg/kv`/`pkg/probe`/`pkg/mitigate`, `mission.yaml`, and `agent/graph.py`. `spec/ARCHITECTURE.md` and the accepted ADRs in `spec/DECISIONS/0001-service-boundaries.md` and `0002-reversible-mitigation.md` instead specify — and the repository's existing Go/Python code partially implements — a **four-service split**: `hunterd`, `orchestrator` (Python/LangGraph), `operator`, `enforcerd`.
+`spec/PRD.md` ("Sentinel-Lite") describes required *behavior* (policy loading, Feistel permutation, delta gating, tiered autonomy, TTL-bounded mitigation, chaos hardening) against an earlier *file layout*: a single `cmd/hunter` MCP stdio binary, `pkg/cidr`/`pkg/kv`/`pkg/probe`/`pkg/mitigate`, `mission.yaml`, and `agent/graph.py` (superseded). `spec/ARCHITECTURE.md` and the accepted ADRs in `spec/DECISIONS/0001-service-boundaries.md` and `0002-reversible-mitigation.md` instead specify — and the repository's existing Go/Python code partially implements — a **four-service split**: `hunterd`, `orchestrator` (Python/LangGraph), `operator`, `enforcerd`.
 
 **This plan uses the four-service layout as authoritative and maps every PRD requirement onto it.** Every phase below states the PRD requirement it satisfies and the real component (not the PRD's literal path) that will own it. No phase creates `cmd/hunter`, `pkg/*`, `mission.yaml`, or `agent/*` paths. Phase 0 includes a task to formally record this reconciliation as an ADR so it stops being tribal knowledge — as of 2026-11-21 that ADR (`spec/DECISIONS/0003-architecture-authority.md`) is being authored by a parallel session on its own `develop` worktree; see the note in `planv1.0/PHASE0.md` §P0.1.
 
@@ -19,7 +19,7 @@ This document is the master index for Sentinel Hunter's build-out. It is derived
 | [2](planv1.0/PHASE2.md) | Triage Core — Cluster / Score / Policy Graph | `orchestrator/*` | Block 2 (Agent Core) | After Phase 0; parallel with Phase 1 |
 | [3](planv1.0/PHASE3.md) | Mitigation Enforcement Plane | `operator/*`, `enforcerd/*` | Block 3 | After Phase 0; parallel with Phases 1–2 |
 | [4](planv1.0/PHASE4.md) | Transport & Durability Hardening | `hunterd` ↔ bus, `orchestrator` checkpointer | Scaffold-boundary gaps in `spec/ARCHITECTURE.md` | After Phases 1–3 interfaces are stable |
-| [5](planv1.0/PHASE5.md) | End-to-End Verification & Chaos Hardening | `lab/`, `deploy/`, new `tests/e2e/` | Block 4 | After Phases 1–4 substantially complete |
+| [5](planv1.0/PHASE5.md) | End-to-End Verification & Chaos Hardening | `lab/`, `deploy/`, new `tests/e2e/` (planned) | Block 4 | After Phases 1–4 substantially complete |
 | [6](planv1.0/PHASE6.md) | Forward Capability Expansion | `orchestrator/score.py`, `enforcerd/*` new backends | Beyond PRD — `docs/roadmap.md` Horizons 1–2 | Only after Phase 5 gate passes |
 
 Phases 1, 2, and 3 are **intentionally parallelizable** — this mirrors the PRD's own call-out that its Agent Core ("Block 2") "can develop in parallel against mocked MCP." The precondition is Phase 0: nothing in Phases 1–3 may start until the contracts it depends on are frozen, because all three phases consume the same `DeltaEvent`/`MitigationAction` schemas and the same `policy.yaml` thresholds.
@@ -67,7 +67,7 @@ Every `PHASE{n}.md` file uses the same structure:
 
 ## 6. Versioning
 
-This is plan **v1.0**. If the phase breakdown itself needs to change materially (not just task-level edits within a phase) — a phase gets split, reordered, or a new phase is inserted — that produces `plans/PHASESv1.1.md` (or `v2.0` for a breaking rethink) and a new `plans/planv1.1/` folder, copied forward from the last version and then edited. **Never edit a shipped `planv1.x/` folder's task list to retroactively change scope** — supersede it with a new minor version and note why in the new `PHASESv1.x.md`'s changelog below. Completed task history stays intact in the old folder as a record of what actually happened, matching the project's existing "log, don't overwrite" convention (`.agents/state-log.md`).
+This is plan **v1.0**. If the phase breakdown itself needs to change materially (not just task-level edits within a phase) — a phase gets split, reordered, or a new phase is inserted — that produces `plans/PHASESv1.1.md` (or `v2.0` for a breaking rethink) and a new `plans/planv1.1/` folder, copied forward from the last version and then edited -- `plans/PHASESv1.1.md`, `plans/planv1.1/` and `planv1.x/` are all (planned), hypothetical future paths, not existing ones. **Never edit a shipped `planv1.x/` folder's task list to retroactively change scope** — supersede it with a new minor version and note why in the new `PHASESv1.x.md`'s changelog below. Completed task history stays intact in the old folder as a record of what actually happened, matching the project's existing "log, don't overwrite" convention (`.agents/orchestration/obs/state-log.md`).
 
 ### Changelog
 

@@ -1,5 +1,7 @@
 # State and contracts
 
+**Status:** authoritative · **Derived from:** `schemas/`, `hunterd/store/`, `orchestrator/state.py` · **Updated:** 2026-11-21
+
 ## DeltaEvent v1
 
 `schemas/delta_event.v1.json` is the cross-language source of truth. `hunterd/probes.Observation` and `orchestrator.state.DeltaEvent` share required identity, kind, source, target, timestamp, SHA-256 fingerprint, and attributes fields. Only `novel` and `mutated` are valid on the AI boundary; `unchanged` is a local Badger decision and is never published.

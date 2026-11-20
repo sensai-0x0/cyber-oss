@@ -1,5 +1,7 @@
 # Phase 1 — Collection Core: Authorized Scan Engine (`hunterd`)
 
+**Status:** active · **Derived from:** [../PHASESv1.0.md](../PHASESv1.0.md) · **Updated:** 2026-11-21
+
 Master index: [`../PHASESv1.0.md`](../PHASESv1.0.md) · Depends on: Phase 0 (contracts frozen) · Parallel with: Phases 2, 3 · PRD coverage: Block 0 (Core), Block 1 (sensor half)
 
 **Exit gate:** `go test -race ./hunterd/...` is green; a hunt record's authorized scope is enforced in Go **before any dial**, with zero off-scope packets observed under fuzzing; a shared token-bucket rate limiter bounds `tlsx`/`httpx` probing; CDN noise suppression matches `spec/SCOPE.md`'s intent; the Human Checkpoints below are signed off.
@@ -44,7 +46,7 @@ Owner: `hunterd/cursor`, `hunterd/store` · Parallel-safe: yes · Model tier: mi
 ### P1.5 — Live Certificate Transparency source (stretch, lowest priority in this phase)
 Owner: `hunterd/probes` · Parallel-safe: yes, but defer if P1.1–P1.4 aren't done · Model tier: mid
 
-- [ ] P1.5.1 Evaluate a CT-stream client (e.g. a certstream-style feed) against the existing `source: ct` schema value — this is explicitly an open question in `.agents/state-log.md`, not yet answered.
+- [ ] P1.5.1 Evaluate a CT-stream client (e.g. a certstream-style feed) against the existing `source: ct` schema value — this is explicitly an open question in `.agents/orchestration/obs/state-log.md`, not yet answered.
 - [ ] P1.5.2 If adopted, wire it to emit through the same `DeltaGate`/novelty path as `tlsx`/`httpx` — no second code path for novelty suppression.
 - [ ] ⛔ BLOCKED (by default): do not start P1.5 until P1.1–P1.4 are closed. This task exists so it isn't forgotten, not so it's worked first.
 

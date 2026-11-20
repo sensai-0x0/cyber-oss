@@ -1,5 +1,9 @@
 # Architecture
 
+**Status:** proposed · **Derived from:** superseded by [../../spec/DECISIONS/0003-architecture-authority.md](../../spec/DECISIONS/0003-architecture-authority.md) · **Updated:** 2026-11-21
+
+> Design history, not instructions. The implemented architecture is in [../../spec/ARCHITECTURE.md](../../spec/ARCHITECTURE.md).
+
 Universal rules: [../CLAUDE.md](../../CLAUDE.md). Interfaces: [interfaces.md](interfaces.md).
 
 ## Components

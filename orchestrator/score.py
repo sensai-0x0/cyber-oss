@@ -2,7 +2,12 @@
 
 from typing import Any
 
+from orchestrator.policy import load_policy
 from orchestrator.state import DeltaEvent, GraphState
+
+# Below this, further clustering cannot change the outcome, so refinement is pointless.
+# Unlike the bounds above it, this floor has no policy.yaml key yet.
+AMBIGUOUS_FLOOR = 0.3
 
 
 def score_threat_intel(state: GraphState) -> dict[str, Any]:
@@ -24,8 +29,10 @@ def score_threat_intel(state: GraphState) -> dict[str, Any]:
 
 
 def route_after_intel(state: GraphState) -> str:
-    """Permit one refinement cycle, then force a terminal policy decision."""
+    """Refine while the score is ambiguous, bounded by policy.yaml, then decide."""
+    config = load_policy()
     confidence = state["intel"]["confidence"]
-    if 0.3 <= confidence < 0.8 and state.get("cycles", 0) < 2:
+    ambiguous = AMBIGUOUS_FLOOR <= confidence < config["mitigation_confidence"]
+    if ambiguous and state.get("cycles", 0) < config["max_refinement_cycles"]:
         return "cluster"
     return "mitigate"

@@ -32,6 +32,8 @@ It is not a scanner with an auto-block reflex. It is the chain between *“somet
 
 > [!WARNING]
 > This software connects to targets. Active use requires a recorded hunt scope, exclusions, rate limits, time window, and authorization owner. Never point it at third parties. Start in the loopback-only lab and read [`spec/SCOPE.md`](spec/SCOPE.md).
+>
+> **Scope enforcement is not yet implemented.** The probe runners dial whatever target they are given, and no component holds an authorized-target allowlist. Invariants I1–I5 in [.agents/orchestration/invariants.md](.agents/orchestration/invariants.md) therefore have no enforcement point today; see [spec/DECISIONS/0003-architecture-authority.md](spec/DECISIONS/0003-architecture-authority.md) consequence 4. Until that lands, probe only the loopback lab.
 
 ---
 
@@ -90,6 +92,24 @@ It is not a scanner with an auto-block reflex. It is the chain between *“somet
                  │ verify → apply      │
                  │ expire → revoke     │
                  └─────────────────────┘
+```
+
+```text
+repo/
+├── CLAUDE.md                   # Contributor commands, safety invariants, skill entry points
+├── .agents/                    # Agent instructions: go.md, python-langgraph.md,
+│                               #   outline-method.md, evals/, orchestration/, skills/
+├── .claude/                    # Orchestrator agent and its skills
+├── spec/                       # Normative: ARCHITECTURE, SCOPE, STATE, PRD, DECISIONS/
+├── plans/                      # Intent: phase plans, data model, interface contracts
+├── docs/                       # Narrative explanation and roadmap
+├── schemas/                    # Versioned DeltaEvent + MitigationAction JSON contracts
+├── hunterd/                    # Go adapters, Feistel cursor, Badger store/novelty, NDJSON publish
+├── orchestrator/               # Python graph.py, cluster.py, score.py, policy.yaml + tests
+├── enforcerd/                  # Go RPZ/nft adapters, Ed25519 verification, TTL lifecycle
+├── operator/                   # Approval/rejection and key-generation CLI
+├── deploy/                     # Loopback Compose, NATS configuration, local cert generator
+└── lab/                        # Harmless fake C2, disabled phishing panel, DNS/firewall targets
 ```
 
 </details>
@@ -172,6 +192,11 @@ git clone https://github.com/sensai-0x0/cyber-oss.git
 cd cyber-oss
 go mod download
 uv sync --frozen --python 3.12
+uv run pytest
+uv run ruff check orchestrator .github/scripts
+uv run python .github/scripts/validate_skills.py .agents/skills
+uv run python .github/scripts/validate_outlines.py
+docker compose -f deploy/compose.yaml config --quiet
 ```
 
 Run the isolated lab:

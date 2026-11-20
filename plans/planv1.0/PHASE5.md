@@ -1,5 +1,7 @@
 # Phase 5 — End-to-End Verification & Chaos Hardening
 
+**Status:** active · **Derived from:** [../PHASESv1.0.md](../PHASESv1.0.md) · **Updated:** 2026-11-21
+
 Master index: [`../PHASESv1.0.md`](../PHASESv1.0.md) · Depends on: Phases 1–4 substantially complete · PRD coverage: Block 4
 
 **Exit gate:** the full eval suite (`.agents/evals/evals.md`, E01–E10) has been run against the integrated system and results are recorded under `.agents/eval-results/`; all three hard-gate evals (E03, E04, E05) pass with zero tolerance; a full-loop smoke test and a SIGKILL chaos test both pass against the loopback lab; the Human Checkpoint below is signed off. This is the gate the project's own safety posture (`docs/05-safety-and-trust-model.md`) depends on being evidence, not assertion.
@@ -8,14 +10,14 @@ Master index: [`../PHASESv1.0.md`](../PHASESv1.0.md) · Depends on: Phases 1–4
 
 ---
 
-### P5.1 — Build `tests/e2e/`
-Owner: new `tests/e2e/` directory (does not exist yet) · Parallel-safe: yes (scaffolding) then no (once the smoke test depends on it) · Model tier: mid for scaffolding, highest for the chaos scenarios
+### P5.1 — Build `tests/e2e/` (planned)
+Owner: new `tests/e2e/` directory (planned) (does not exist yet) · Parallel-safe: yes (scaffolding) then no (once the smoke test depends on it) · Model tier: mid for scaffolding, highest for the chaos scenarios
 
 - [ ] P5.1.1 Stand up the full-loop smoke test from the PRD: `hunterd` → (Phase 4 transport) → `orchestrator` → human-gate → `operator` → `enforcerd`, against the multi-host local lab (`lab/fake_c2.py` mimicking C2 JARM, `lab/phish_panel.py`'s disabled fixture mimicking a phishing favicon) defined in `deploy/compose.yaml`.
 - [ ] P5.1.2 Verify, in one run: a benign host produces zero escalation, a high-confidence narrow-match host produces an automatic bounded mitigation, and a broad/low-margin host halts at the human-gate `interrupt()` and only proceeds on an explicit decision.
 
 ### P5.2 — Crash and backpressure resilience (chaos)
-Owner: `tests/e2e/` · Parallel-safe: no (needs P5.1's harness) · Model tier: highest
+Owner: `tests/e2e/` (planned) · Parallel-safe: no (needs P5.1's harness) · Model tier: highest
 
 - [ ] P5.2.1 `SIGKILL` the `hunterd` process mid-sweep; restart; confirm the Feistel cursor resumes without re-emitting prior deltas and without skipping unscanned addresses (the daemon-level version of Phase 1's P1.4.2, now run against the full pipeline rather than `hunterd` in isolation).
 - [ ] P5.2.2 `SIGKILL` between a Badger mitigation-record write and backend install (per invariant I12/I13); restart; confirm the reaper removes any action that was recorded but never confirmed installed, rather than leaving an orphaned record.

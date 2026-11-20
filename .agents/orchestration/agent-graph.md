@@ -1,6 +1,10 @@
 # LangGraph Agent (`agent/`)
 
-Universal rules: [../CLAUDE.md](../../CLAUDE.md). Tool contracts: [interfaces.md](interfaces.md). Python style: [language-idioms.md](language-idioms.md#python).
+**Status:** proposed · **Derived from:** superseded by [../../spec/DECISIONS/0003-architecture-authority.md](../../spec/DECISIONS/0003-architecture-authority.md) · **Updated:** 2026-11-21
+
+> Design history, not instructions. The implemented graph is `orchestrator/graph.py`.
+
+Universal rules: [../CLAUDE.md](../../CLAUDE.md). Tool contracts: [interfaces.md](interfaces.md). Python style: [language-idioms.md](../python-langgraph.md).
 
 ## State
 

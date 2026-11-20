@@ -1,5 +1,7 @@
 # Master Orchestrator Plan
 
+**Status:** active · **Derived from:** [constitution.md](constitution.md), [../outline-method.md](../outline-method.md) · **Updated:** 2026-11-21
+
 Universal rules: [../CLAUDE.md](../../CLAUDE.md). Allocation policy: [constitution.md](constitution.md). Fitness: [evals.md](evals.md). State: [state-log.md](../orchestration/obs/state-log.md).
 
 The orchestrator is the top-level Claude session (Opus 5.5). It plans, spawns subagents, merges their work into `develop`, and evolves its own constitution after each phase. It never writes feature code itself when a subagent can.
@@ -23,10 +25,10 @@ for phase in PHASES:
 | # | Phase | Features (parallel where independent) | Phase evals |
 |---|---|---|---|
 | P0 | Scaffold | `go.mod`, layout, `mission.yaml` loader + schema validation, CI, Python env | E10 |
-| P1 | Core Go | `pkg/cidr` ‖ `pkg/kv` | E01, E02, E08 (cursor part) |
-| P2 | Probe | `pkg/probe` (scope, rate, tlsx/httpx), mock servers | E03, E09 |
-| P3 | MCP | `cmd/hunter` 4 tools, error codes, reaper | E03, E04, E08 |
-| P4 | Agent | `agent/tools.py` ‖ `agent/graph.py`, fixtures | E05, E06 |
+| P1 | Core Go | `hunterd/cursor` ‖ `hunterd/store` | E01, E02, E08 (cursor part) |
+| P2 | Probe | `hunterd/probes` (scope, rate, tlsx/httpx), mock servers | E03, E09 |
+| P3 | Transport | `hunterd/cmd/hunterd`, error codes, reaper | E03, E04, E08 |
+| P4 | Triage | `orchestrator/graph.py` ‖ `orchestrator/policy.py`, fixtures | E05, E06 |
 | P5 | Harden | Fuzzing, red-team pass, triage tuning | All E01-E10, E07 |
 
 `‖` = run as parallel subagents in separate worktrees. Dependent features run in sequence.
@@ -49,7 +51,7 @@ for phase in PHASES:
 ## 4. Feature gate (every subagent, before merge)
 
 1. Tests for the feature pass ([testing.md](../testing.md)).
-2. Lint clean: `gofmt`, `go vet`, `staticcheck`, `ruff`, `mypy --strict` ([language-idioms.md](../orchestration/language-idioms.md)).
+2. Lint clean: `gofmt`, `go vet`, `staticcheck`, `ruff`, `mypy --strict` ([go.md](../go.md), [python-langgraph.md](../python-langgraph.md)).
 3. `/code-review` skill on the diff at the depth the constitution sets.
 4. `/security-review` skill if the diff touches anything in [invariants.md](../orchestration/invariants.md). Mandatory, not a gene.
 5. `/simplify` skill when the constitution's `simplify` gene is on.

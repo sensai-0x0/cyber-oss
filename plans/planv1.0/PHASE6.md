@@ -1,5 +1,7 @@
 # Phase 6 — Forward Capability Expansion
 
+**Status:** active · **Derived from:** [../PHASESv1.0.md](../PHASESv1.0.md) · **Updated:** 2026-11-21
+
 Master index: [`../PHASESv1.0.md`](../PHASESv1.0.md) · Depends on: Phase 5 gate passed (hard requirement, not a suggestion) · Maps to: `docs/roadmap.md` Horizons 1–2
 
 **Exit gate:** each adopted capability below ships behind the existing trust boundary with no change to how signing, approval, or TTL enforcement works — it should only ever be additive to `score.py`/`cluster.py`/`policy.py`/a new `enforcerd` backend. If a Phase 6 task seems to require loosening a safety invariant to land, that is a sign the task is mis-scoped, not a sign the invariant needs revisiting — escalate to a Human Checkpoint rather than proceeding.
@@ -24,7 +26,7 @@ Owner: `hunterd/probes` · Parallel-safe: yes · Model tier: mid
 ### P6.3 — ASN-hop detection
 Owner: `orchestrator/cluster.py`, `orchestrator/score.py` · Parallel-safe: yes · Model tier: mid
 
-- [ ] P6.3.1 Resolve the open question in `.agents/state-log.md` ("which ASN lookup feeds `DeltaEvent.asn`") — offline DB vs. API, and the licensing/freshness tradeoff.
+- [ ] P6.3.1 Resolve the open question in `.agents/orchestration/obs/state-log.md` ("which ASN lookup feeds `DeltaEvent.asn`") — offline DB vs. API, and the licensing/freshness tradeoff.
 - [ ] P6.3.2 Add ASN-hop signal (infrastructure moving providers shortly before use) into clustering/scoring as a new `attributes` key, following the same additive-only contract rule from `contract-steward`.
 
 ### P6.4 — Headscale backend (if deferred from Phase 3)

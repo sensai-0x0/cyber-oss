@@ -1,5 +1,7 @@
 # Phase 3 — Mitigation Enforcement Plane (`operator`, `enforcerd`)
 
+**Status:** active · **Derived from:** [../PHASESv1.0.md](../PHASESv1.0.md) · **Updated:** 2026-11-21
+
 Master index: [`../PHASESv1.0.md`](../PHASESv1.0.md) · Depends on: Phase 0 (contracts frozen) · Parallel with: Phases 1, 2 · PRD coverage: Block 3
 
 **Exit gate:** `go test -race ./operator/... ./enforcerd/...` is green; an isolated-network integration test proves a real rule is installed, actually drops traffic, and is actually removed on TTL expiry (not just that the in-memory bookkeeping says so); the Headscale backend decision is made and either implemented or explicitly deferred to Phase 6; the Human Checkpoints below are signed off.
@@ -28,7 +30,7 @@ Owner: `enforcerd/enforcer.go` · Parallel-safe: yes · Model tier: highest (thi
 Owner: `operator/cmd` · Parallel-safe: yes · Model tier: mid
 
 - [ ] P3.3.1 Confirm `operator/cmd` (the CLI mentioned in `README.md`'s layout) exists and exposes approve/reject against a concrete `enforcerd.Action` payload — verify current state and fill any gap between the tested `operator/decision.go` logic and an actual runnable CLI entry point.
-- [ ] P3.3.2 Add key-generation and key-storage guidance (where the Ed25519 private key lives, who can access it) to `spec/SCOPE.md` or a new `operator/README.md` — currently undocumented outside the code itself.
+- [ ] P3.3.2 Add key-generation and key-storage guidance (where the Ed25519 private key lives, who can access it) to `spec/SCOPE.md` or a new `operator/README.md` (planned) — currently undocumented outside the code itself.
 - [ ] 🔒 HUMAN CHECKPOINT: review key custody before any approval flow is used against a real (even lab) backend — an operator's private key is the entire trust anchor for the enforcement boundary described in `docs/05-safety-and-trust-model.md`.
 
 ### P3.4 — Headscale backend decision

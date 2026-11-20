@@ -1,5 +1,7 @@
 # Phase 4 — Transport & Durability Hardening
 
+**Status:** active · **Derived from:** [../PHASESv1.0.md](../PHASESv1.0.md) · **Updated:** 2026-11-21
+
 Master index: [`../PHASESv1.0.md`](../PHASESv1.0.md) · Depends on: Phases 1, 2, 3 (interfaces stable, not necessarily every task closed) · PRD coverage: none directly — this closes the gaps `spec/ARCHITECTURE.md` names explicitly in its "Current scaffold boundary" section
 
 **Exit gate:** a durable NATS consumer replaces the NDJSON-stdio-only path for production use without changing the `DeltaEvent` contract; `orchestrator`'s durable checkpointer (built in P2.2) is the configured default outside tests; `enforcerd` has a defined transport for receiving actions from a centralized source rather than only an in-process call; the Human Checkpoints below are signed off.

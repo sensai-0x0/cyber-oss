@@ -1,5 +1,7 @@
 # Invariants and Security Rules
 
+**Status:** authoritative · **Derived from:** safety requirements in [../../spec/SCOPE.md](../../spec/SCOPE.md) · **Updated:** 2026-11-21
+
 Universal rules: [../CLAUDE.md](../../CLAUDE.md). These are non-negotiable. A change that weakens one is a bug, even if tests pass.
 
 ## Scope (authorized engagement)

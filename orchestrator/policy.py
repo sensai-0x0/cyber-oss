@@ -47,8 +47,29 @@ def synthesize_policy(state: GraphState) -> dict[str, Any]:
     return {"policy": policy}
 
 
+def apply_decision(policy: Policy, decision: dict[str, Any], config: dict[str, Any]) -> Policy:
+    """Return a new policy reflecting an operator decision, leaving the input untouched."""
+    if not bool(decision.get("approved", False)):
+        return {
+            **policy,
+            "action": "observe",
+            "approved": False,
+            "ttl_seconds": 0,
+            "reason": "operator rejected mitigation",
+        }
+    requested_ttl = int(decision.get("ttl_seconds", config["default_ttl_seconds"]))
+    return {
+        **policy,
+        "approved": True,
+        "ttl_seconds": min(
+            max(requested_ttl, config["min_approved_ttl_seconds"]),
+            config["max_approved_ttl_seconds"],
+        ),
+    }
+
+
 def approve_policy(state: GraphState) -> dict[str, Any]:
-    """Persist the proposed policy before pausing for a broad-action decision."""
+    """Pause for a named decision on a broad action, then record the outcome."""
     policy = state["policy"]
     if policy["action"] != "mitigate" or not policy["broad"]:
         return {}
@@ -62,14 +83,4 @@ def approve_policy(state: GraphState) -> dict[str, Any]:
             "max_ttl_seconds": config["max_approved_ttl_seconds"],
         }
     )
-    approved = bool(decision.get("approved", False))
-    policy["approved"] = approved
-    if not approved:
-        policy.update(action="observe", ttl_seconds=0, reason="operator rejected mitigation")
-    else:
-        requested_ttl = int(decision.get("ttl_seconds", config["default_ttl_seconds"]))
-        policy["ttl_seconds"] = min(
-            max(requested_ttl, config["min_approved_ttl_seconds"]),
-            config["max_approved_ttl_seconds"],
-        )
-    return {"policy": policy}
+    return {"policy": apply_decision(policy, decision, config)}

@@ -1,5 +1,7 @@
 # Phase 0 — Foundations & Contract Lock
 
+**Status:** active · **Derived from:** [../PHASESv1.0.md](../PHASESv1.0.md) · **Updated:** 2026-11-21
+
 Master index: [`../PHASESv1.0.md`](../PHASESv1.0.md) · Depends on: nothing · Blocks: Phases 1, 2, 3
 
 **Exit gate:** `schemas/*.json` and `orchestrator/policy.yaml` are frozen at v1 with passing cross-language validation tests; the PRD-vs-architecture reconciliation is recorded as an ADR; every existing test/lint command in `README.md` is green on a clean checkout; the Human Checkpoint below is signed off. Nothing in Phase 1, 2, or 3 may branch off `develop` before this gate passes.
@@ -13,7 +15,7 @@ Owner: `spec/DECISIONS/` · Parallel-safe: yes · Model tier: highest (ADR/decis
 
 **Note (2026-11-21): a parallel session is already writing this ADR as `spec/DECISIONS/0003-architecture-authority.md` on its own `develop` worktree. Do not create a second, differently-named 0003 ADR — consume theirs.**
 
-- [ ] P0.1.1 Once `spec/DECISIONS/0003-architecture-authority.md` lands, confirm it states what this plan assumes: `spec/PRD.md`'s functional requirements (policy loading, Feistel permutation, delta gating, tiered autonomy, TTL-bounded mitigation, chaos hardening) are adopted, but its file layout (`cmd/hunter`, `pkg/cidr`, `pkg/kv`, `pkg/probe`, `pkg/mitigate`, `mission.yaml`, `agent/`) is superseded by the four-service layout in `spec/ARCHITECTURE.md` and ADR 0001. If it says something materially different, flag the conflict rather than silently proceeding on this plan's assumption.
+- [ ] P0.1.1 Once `spec/DECISIONS/0003-architecture-authority.md` lands, confirm it states what this plan assumes: `spec/PRD.md`'s functional requirements (policy loading, Feistel permutation, delta gating, tiered autonomy, TTL-bounded mitigation, chaos hardening) are adopted, but its file layout (`cmd/hunter`, `pkg/cidr`, `pkg/kv`, `pkg/probe`, `pkg/mitigate`, `mission.yaml`, `agent/`) (planned) is superseded by the four-service layout in `spec/ARCHITECTURE.md` and ADR 0001. If it says something materially different, flag the conflict rather than silently proceeding on this plan's assumption.
 - [ ] P0.1.2 Cross-link `0003-architecture-authority.md` from `docs/06-engineering-process.md` §5 and `plans/PHASESv1.0.md` §0 once it exists, so the reconciliation isn't recorded in only one place.
 - [ ] 🔒 HUMAN CHECKPOINT: confirm the reconciliation direction (four-service layout wins) is still the intended architecture before it's treated as settled for the rest of this plan.
 
@@ -29,12 +31,12 @@ Owner: `schemas/mitigation_action.v1.json`, `enforcerd.Action` · Parallel-safe:
 
 - [ ] P0.3.1 Add an explicit test asserting that every field in `schemas/mitigation_action.v1.json`'s `required` list is also present in `enforcerd.canonicalAction`'s wire struct, so a future schema field addition that's forgotten in the signer fails CI instead of silently shipping an unsigned field.
 - [ ] P0.3.2 Confirm `policy.yaml`'s `min_approved_ttl_seconds`/`max_approved_ttl_seconds`/`default_ttl_seconds` and `enforcerd.MaxTTL` (24h) agree, with a test that would fail if someone changed one without the other.
-- [ ] 🔒 HUMAN CHECKPOINT: review and explicitly approve `policy.yaml`'s current thresholds (`mitigation_confidence: 0.8`, `broad_prefix_threshold: 24`) as the v1.0 defaults before Phase 2 builds against them — these are risk-tuning decisions, not engineering defaults an agent should set unilaterally.
+- [ ] 🔒 HUMAN CHECKPOINT: review and explicitly approve `policy.yaml`'s current thresholds (`policy.yaml: mitigation_confidence`, `policy.yaml: broad_prefix_threshold`) as the v1.0 defaults before Phase 2 builds against them — these are risk-tuning decisions, not engineering defaults an agent should set unilaterally.
 
 ### P0.4 — Verification pipeline baseline
 Owner: repo-wide · Parallel-safe: yes · Model tier: mid (mechanical verification, escalate on failure)
 
-- [ ] P0.4.1 Run the full command list from `README.md` (`go test ./...`, `uv sync --frozen --python 3.12`, `uv run pytest`, `uv run ruff check orchestrator .github/scripts`, `uv run python .github/scripts/validate_skills.py .agents/skills`, `docker compose -f deploy/compose.yaml config --quiet`) on a clean checkout and record the result in `.agents/state-log.md`.
+- [ ] P0.4.1 Run the full command list from `README.md` (`go test ./...`, `uv sync --frozen --python 3.12`, `uv run pytest`, `uv run ruff check orchestrator .github/scripts`, `uv run python .github/scripts/validate_skills.py .agents/skills`, `docker compose -f deploy/compose.yaml config --quiet`) on a clean checkout and record the result in `.agents/orchestration/obs/state-log.md`.
 - [ ] P0.4.2 Fix any failure found in P0.4.1 before Phase 0 is considered closed — a red baseline is not a valid foundation for three parallel phases to build on.
 
 ### Exit

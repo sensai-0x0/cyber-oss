@@ -14,4 +14,4 @@ deploy/certs/generated/
 *.csr
 *.srl
 checkpoints/
-/.worktrees/
+.worktrees/

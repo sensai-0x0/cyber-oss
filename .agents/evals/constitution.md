@@ -1,5 +1,7 @@
 # Orchestrator Constitution
 
+**Status:** active · **Derived from:** [orchestrator.md](orchestrator.md) · **Updated:** 2026-11-21
+
 Read by [orchestrator.md](orchestrator.md) at the start of every phase. Evolved at the end of every phase (orchestrator.md §6). Universal rules: [../CLAUDE.md](../../CLAUDE.md).
 
 **Version:** v1 (seed) · **Last evolved:** 2026-11-20 · **Fitness:** not yet measured
@@ -19,9 +21,9 @@ Read by [orchestrator.md](orchestrator.md) at the start of every phase. Evolved 
 | Gene | Value | Bounds | Meaning |
 |---|---|---|---|
 | `max_parallel_subagents` | 2 | 1–4 | Concurrent worktrees |
-| `model_impl_core` | sonnet | sonnet, opus | Implementer for `pkg/*`, `cmd/*` |
+| `model_impl_core` | sonnet | sonnet, opus | Implementer for `hunterd/`, `enforcerd/`, `operator/` |
 | `model_impl_invariant` | opus | opus | Fixed in practice; listed for record |
-| `model_impl_agent` | sonnet | haiku, sonnet, opus | Implementer for `agent/` |
+| `model_impl_agent` | sonnet | haiku, sonnet, opus | Implementer for `orchestrator/` |
 | `model_mechanical` | haiku | haiku, sonnet | Lint fixes, fixtures, docs |
 | `max_retries` | 2 | 1–4 | Retries before escalating a model step |
 | `tdd_split` | on | on, off | Separate test-writer subagent |
