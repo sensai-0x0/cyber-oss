@@ -14,7 +14,7 @@ Decisions flow from the ledger into the graph as structured JSON episodes, with 
 2. **Episode builder.** One episode per ledger record: JSON only (`EpisodeType.json`), a fixed field set, and the episode key equal to the ledger `record_hash`. Replay is therefore idempotent.
 3. **Sanitising.** Only fields on an allowlist are sent. Strings are length-capped and restricted to the characters a hostname, IP or hex digest can contain. Banners, page titles and error text never enter an episode.
 4. **Provenance.** Each fact carries its class (OBSERVED, DERIVED, ASSERTED). Per the ADR, ASSERTED facts are not ingested.
-5. **Replay tool** (`python -m orchestrator.graph_replay`, planned): reads the ledger from a given `seq` and re-submits. It is safe to re-run.
+5. **Replay tool** (`python -m orchestrator.graph_replay`, planned): reads the ledger from a given `seq` and re-submits. It is safe to re-run. Large replays use the Message Batches API with `custom_id` set to the record hash, and run `count_tokens` first against an operator-set budget ([Claude-api.md](Claude-api.md)).
 
 ## Tests first
 
@@ -35,6 +35,7 @@ Decisions flow from the ledger into the graph as structured JSON episodes, with 
 | GF-4.5 | Entity resolution merges two different targets, or splits one | Spot-check set | Use stable identifiers in the payload. Treat LLM resolution as advisory |
 | GF-4.6 | Ontology change leaves old episodes in the old shape | Version field in each episode | Version the ontology. Migration is a full replay into a new `group_id`, then a switch |
 | GF-4.7 | Sensitive data in the graph (real target lists, operator names) | Allowlist review | Lab data only until the ADR says otherwise. Do not commit exports |
+| GF-4.9 | A batch replay returns results out of order, or some items expired or errored | Count of results against count submitted | Match by `custom_id`, resubmit only the failed keys, and report the remainder |
 | GF-4.8 | IPv6, internationalised hostnames or port suffixes break the character rules | Boundary tests | Normalise with the same classifier as `classify_target` in ml-add Phase 0. Reject what does not parse |
 
 ## Acceptance

@@ -12,6 +12,12 @@ This is a plan, not an instruction. Nothing here may be built until Phase 0 acce
 - **The app** (the `orchestrator/` package, in its own container; planned) joins the same network and reaches FalkorDB by service name.
 - **Graphiti runs as a library inside the app.** The reference MCP/REST server is not deployed, because it has no authentication (`db/CONFIG.md`, risk table). The Go binaries never talk to the graph. Badger stays the Go-side delta gate.
 
+## Network topology
+
+- `graphnet` is a Compose network marked `internal: true`. FalkorDB is on it and nowhere else, so it has no route to the internet.
+- The app is on `graphnet` and on `egress` (planned), the one network with outbound access, because it must reach the Claude API.
+- No other lab service joins either network.
+
 ## Position in the system
 
 The graph is a **side channel**: written after a decision, read for analysis. It never sits between an event and a mitigation. If it is down, hunting, scoring, approval and enforcement behave exactly as they do today. Phase 3 has a test for that.
@@ -27,6 +33,8 @@ The graph is a **side channel**: written after a decision, read for analysis. It
 | [4](Phase-4.md) | Ontology and ingestion from the ledger | 5 |
 | [5](Phase-5.md) | Backup, restore, observability, failure drills | 6 |
 | [6](Phase-6.md) | Read path into analysis only. Gated | none |
+
+The Claude integration is specified in [Claude-api.md](Claude-api.md) and applies from Phase 0 to Phase 4.
 
 ## Rules every phase follows
 
@@ -46,6 +54,6 @@ The graph is a **side channel**: written after a decision, read for analysis. It
 
 ## Open risks across the plan
 
-- **LLM dependency.** `Graphiti.add_episode` calls an LLM to extract entities. That adds a paid, networked, non-deterministic dependency, and a second prompt-injection surface (Phase 4, GF-4.2). Phase 0 must decide whether to accept it or choose a store without it.
+- **LLM dependency.** `Graphiti.add_episode` calls an LLM to extract entities. That adds a paid, networked, non-deterministic dependency, and a second prompt-injection surface (Phase 4, GF-4.2). The provider is Claude, called through the Messages API, not the Agent SDK. [Claude-api.md](Claude-api.md) records why, and what it implies (an embedder is needed separately, and some request parameters must not be sent).
 - **No evidence of need.** No current component reads a graph. Phase 0 requires a named consumer.
 - **Stale source docs.** `db/INSTALL.md` targets `cmd/hunter` and `agent/graph.py`, which do not exist. Phase 0 rewrites them to match this plan or marks them `superseded`.

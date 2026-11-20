@@ -10,6 +10,7 @@ A small adapter, `orchestrator/graphstore.py` (planned), wraps Graphiti with a F
 
 ## Scope
 
+0. The LLM client is a Graphiti LLM client over the Anthropic SDK's Messages API ([Claude-api.md](Claude-api.md)). It sends no sampling parameters, no prefill and no forced `tool_choice`, requests structured output through `output_config.format`, and checks `stop_reason` before parsing.
 1. Interface: `record(episode) -> None` and `search(query, limit) -> list` (read use is gated to Phase 6). The real class wraps `Graphiti(graph_driver=FalkorDriver(...))`. A `NullGraphStore` is the default. A `FakeGraphStore` serves tests.
 2. Every call has a hard timeout and catches all exceptions. Failures increment a counter and are logged. They never propagate into the graph nodes.
 3. One `group_id` constant, used on every read and write. FalkorDB maps each `group_id` to a separate graph, and a mismatch returns empty results with no error.
@@ -38,12 +39,17 @@ A small adapter, `orchestrator/graphstore.py` (planned), wraps Graphiti with a F
 | GF-3.7 | Library API changes between versions | Import or signature error in CI | Pin exactly. Contract test against the pinned version |
 | GF-3.8 | Event loop conflict: Graphiti is async and the graph nodes are sync | Runtime error | One dedicated background thread with its own loop. Do not call `asyncio.run` per episode |
 | GF-3.9 | Process exits with episodes still queued | Shutdown test | Drain with a deadline on shutdown. The ledger is the source for replay |
+| GF-3.10 | The model rejects a request parameter (HTTP 400) | Recorded request-body test | The client sends only the allowed set. The test fails if sampling, prefill or forced tool choice appears |
+| GF-3.11 | Provider errors: rate limit, overload, auth, retired model | Typed exceptions | See GF-C.2, C.4 and C.5 in [Claude-api.md](Claude-api.md). Auth and not-found disable the store for the process |
+| GF-3.12 | Refusal or truncated output is parsed as a result | `stop_reason` test | Never parse on `refusal` or `max_tokens`. Drop and count |
+| GF-3.13 | No embedder or a wrong embedding dimension against an existing index | `graphcheck` | Fail before sending episodes. A dimension change is an ontology-version migration (GF-4.6) |
 
 ## Acceptance
 
 - [ ] Tests pass, including isolation.
 - [ ] `go vet`, `go test -race`, `ruff` and `pytest` pass as in `CLAUDE.md`.
-- [ ] A smoke run against the real container writes and reads one episode.
+- [ ] A smoke run against the real container writes and reads one episode, and `cache_read_input_tokens` is non-zero on the second call.
+- [ ] The recorded-request test passes against the pinned model.
 - [ ] 🔒 HUMAN CHECKPOINT: reviewer confirms no code path awaits the graph in a node.
 - [ ] Failures logged.
 

@@ -11,7 +11,7 @@ The orchestrator runs in a container on `graphnet`, can reach `falkordb` by serv
 ## Scope
 
 1. `orchestrator/Dockerfile` (planned): Python 3.12, `uv sync --frozen`, non-root user, read-only root filesystem with a tmpfs and one writable data volume. `deploy/CLAUDE.md` currently says no Go or Python services are built; update that line in the same commit.
-2. Compose service `orchestrator` (planned) on `graphnet`, `depends_on: falkordb: condition: service_healthy`. The graph is optional at runtime (Phase 3), so this ordering is for the smoke test and not a runtime requirement.
+2. Compose service `orchestrator` (planned) on `graphnet` and on `egress` (planned, the only network with outbound access; it is how the app reaches the Claude API), `depends_on: falkordb: condition: service_healthy`. The graph is optional at runtime (Phase 3), so this ordering is for the smoke test and not a runtime requirement.
 3. Environment: `FALKORDB_HOST=falkordb`, port, password and `GRAPH_STORE_ENABLED` (default `false`). Never `127.0.0.1` inside the container, since that is the container itself.
 4. A connectivity check entry point (`python -m orchestrator.graphcheck`, planned) that connects, authenticates and exits non-zero on failure.
 5. The SQLite checkpoint path ([../../orchestrator/graph.py](../../orchestrator/graph.py)) points at a mounted volume so interrupts survive a container restart.
@@ -32,7 +32,9 @@ The orchestrator runs in a container on `graphnet`, can reach `falkordb` by serv
 | GF-2.4 | The container's writable volume is lost, so checkpoints are lost and a pending approval disappears | Restart drill | Mount the volume, and test interrupt then restart then resume |
 | GF-2.5 | Read-only root breaks a library that writes at import | Container exits at start | Add a specific tmpfs path. Do not drop `read_only` |
 | GF-2.6 | Running as root, or the image carries the `.env` | Image scan, `docker history` | Non-root user, `.dockerignore` for `.env` and keys |
-| GF-2.7 | Two app replicas write the same checkpoint file | Corruption or lock errors | Run one replica. Document it. SQLite is not a multi-writer store |
+| GF-2.7 | Two app replicas write the same checkpoint file | Corruption or lock errors | Compose pins one replica, a lock file on the data volume makes a second instance exit, and a test starts two and expects one to refuse |
+| GF-2.9 | `egress` lets the app reach any host, not only the Claude API | Egress test from inside the container | Compose cannot filter by host. Document the limit, and put an allowlisting proxy on `egress` if the ADR requires it. Never attach `egress` to FalkorDB |
+| GF-2.10 | The API key is baked into the image or printed by `docker inspect` | Image history review, `.dockerignore` | The key is injected at run time from the environment. Document that `inspect` shows it in the lab, and use secrets outside the lab |
 | GF-2.8 | Time skew between containers makes ledger and graph timestamps disagree | Phase 4 ordering test | Use host time sources only, and compare by sequence number, not clock |
 
 ## Acceptance
