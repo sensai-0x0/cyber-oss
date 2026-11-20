@@ -35,7 +35,7 @@ def start_broad_action_run(db_path: Path) -> dict:
     """Build a graph against the db file and drive it to the broad-action interrupt."""
     compiled = build_graph(checkpointer=build_sqlite_checkpointer(str(db_path)))
     config = {"configurable": {"thread_id": "operator-restart-test"}}
-    value = event(recent_ct=True, known_bad=True, shared_fingerprints=3, prefix_length=16)
+    value = event(recent_ct=True, known_bad=True, shared_fingerprints=3)
     result = compiled.invoke({"event": value}, config=config)
     assert result["__interrupt__"][0].value["type"] == "approval_required"
     assert result["policy"]["action"] == "mitigate"

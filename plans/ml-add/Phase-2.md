@@ -1,6 +1,6 @@
 # Phase 2: Append-only evidence ledger (K1)
 
-**Status:** proposed · **Derived from:** [README.md](README.md), ADR 0004 (planned, [Phase-0.md](Phase-0.md)) · **Updated:** 2026-11-20
+**Status:** proposed · **Derived from:** [README.md](README.md), ADR 0004 (accepted, [Phase-0.md](Phase-0.md)) · **Updated:** 2026-11-20
 
 **Depends on:** Phases 0 and 1. **Blocks:** Phases 3–5.
 

@@ -1,6 +1,6 @@
 # Phase 0: Governance and safety preconditions
 
-**Status:** proposed · **Derived from:** [README.md](README.md), SHR-007, SHR-008, SHR-012 in [../../docs/reviews/2026-11-21-codebase.jsonl](../../docs/reviews/2026-11-21-codebase.jsonl) · **Updated:** 2026-11-20
+**Status:** accepted · **Derived from:** [README.md](README.md), SHR-007, SHR-008, SHR-012 in [../../docs/reviews/2026-11-21-codebase.jsonl](../../docs/reviews/2026-11-21-codebase.jsonl) · **Updated:** 2026-11-20
 
 **Depends on:** nothing. **Blocks:** every later phase.
 
@@ -22,10 +22,10 @@ If scoring improves before this is fixed, these auto-approvals become more frequ
 
 **In**
 
-1. **Policy kill switch.** Add a `policy.yaml` key `auto_approve_narrow` (planned), defaulting to off. While it is off, every `mitigate` decision goes through `approve_policy`'s `interrupt()`, whatever `broad` says.
-2. **Derive the target in Python.** Add `classify_target(target)` (planned, in `orchestrator/policy.py`). It parses with `ipaddress`, strips a port or URL down to the host, and returns `(kind, prefix_len, broad)`. Neither `attributes.prefix_length` nor the first character is consulted. A target it cannot parse becomes `observe` with a reason, not an exception.
+1. **Policy kill switch.** Add a `policy.yaml` key `auto_approve_narrow`, defaulting to off. While it is off, every `mitigate` decision goes through `approve_policy`'s `interrupt()`, whatever `broad` says.
+2. **Derive the target in Python.** Add `classify_target(target)` (in `orchestrator/policy.py`). It parses with `ipaddress`, strips a port or URL down to the host, and returns `(kind, prefix_len, broad)`. Neither `attributes.prefix_length` nor the first character is consulted. A target it cannot parse becomes `observe` with a reason, not an exception.
 3. **Fix the boundary.** Decide whether `/24` counts as broad (SHR-007) and encode the answer in `policy.yaml`. The decision goes in the ADR.
-4. **ADR 0004** (`spec/DECISIONS/0004-campaign-belief-ledger.md` (planned)). It records:
+4. **ADR 0004** (`spec/DECISIONS/0004-campaign-belief-ledger.md`). It records:
    - where ledger and campaign state live: a Python-owned SQLite file, or a new read API on `hunterd`, given that `hunterd` owns Badger (I17)
    - how a campaign is identified
    - that challengers never write to `GraphState.policy`
@@ -43,10 +43,10 @@ If scoring improves before this is fixed, these auto-approvals become more frequ
 
 ## Acceptance
 
-- [ ] All the above tests pass, and the existing 56 tests still pass.
-- [ ] ADR 0004 is merged with `Status: accepted` and approved by a named human.
-- [ ] `validate_outlines.py --strict` exits 0.
-- [ ] 🔒 HUMAN CHECKPOINT: someone signs off on the `/24` decision and on the default of the kill switch.
+- [x] All the above tests pass, and the existing 56 tests still pass.
+- [x] ADR 0004 is merged with `Status: accepted` and approved by a named human.
+- [x] `validate_outlines.py --strict` exits 0.
+- [x] 🔒 HUMAN CHECKPOINT (recorded in ADR 0004, repository owner): someone signs off on the `/24` decision and on the default of the kill switch.
 
 ## Rollback
 

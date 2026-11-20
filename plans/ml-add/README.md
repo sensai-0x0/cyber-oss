@@ -1,6 +1,6 @@
 # ML add: Campaign Belief Ledger, phased
 
-**Status:** proposed · **Derived from:** [source-ml-and-kernel-review-v2.md](source-ml-and-kernel-review-v2.md), [../../docs/reviews/2026-11-21-codebase.jsonl](../../docs/reviews/2026-11-21-codebase.jsonl), authorizing ADR `spec/DECISIONS/0004-campaign-belief-ledger.md` (planned, Phase 0) · **Updated:** 2026-11-20
+**Status:** proposed · **Derived from:** [source-ml-and-kernel-review-v2.md](source-ml-and-kernel-review-v2.md), [../../docs/reviews/2026-11-21-codebase.jsonl](../../docs/reviews/2026-11-21-codebase.jsonl), authorizing ADR `spec/DECISIONS/0004-campaign-belief-ledger.md` (accepted, Phase 0) · **Updated:** 2026-11-20
 
 This is a design that has not been built. **None of these files is an instruction to build anything** until Phase 0's ADR is accepted.
 
