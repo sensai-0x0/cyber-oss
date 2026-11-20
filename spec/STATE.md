@@ -29,4 +29,4 @@ An operator rejection is a review result, not a deployable MitigationAction: it 
 
 Dated entries for recorded decisions, most recent last. Format: `YYYY-MM-DD: <what changed>, <old> -> <new>, approved by <who>.`
 
-- 2026-11-21: initial `orchestrator/policy.yaml` defaults (`mitigation_confidence: 0.8`, `broad_prefix_threshold: 24`, `default_ttl_seconds: 900`, `min_approved_ttl_seconds: 60`, `max_approved_ttl_seconds: 86400`, `max_refinement_cycles: 2`) approved per the Human Checkpoint in `plans/planv1.0/PHASE0.md` P0.3.
+- 2026-11-21: initial `orchestrator/policy.yaml` defaults for keys `mitigation_confidence`, `broad_prefix_threshold`, `default_ttl_seconds`, `min_approved_ttl_seconds`, `max_approved_ttl_seconds` and `max_refinement_cycles` (values: `git show b06074f:orchestrator/policy.yaml`) approved per the Human Checkpoint in `plans/planv1.0/PHASE0.md` P0.3.
