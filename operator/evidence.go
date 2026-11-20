@@ -10,7 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/metacogna/sentinel-hunter/canonjson"
 	"github.com/metacogna/sentinel-hunter/enforcerd"
@@ -33,13 +35,13 @@ type Evidence struct {
 }
 
 type ledgerRecord struct {
-	Seq      int64          `json:"seq"`
-	PrevHash string         `json:"prev_hash"`
-	Hash     string         `json:"record_hash"`
-	Stage    string         `json:"stage"`
-	Scorer   string         `json:"scorer_id"`
-	Intel    map[string]any `json:"intel"`
-	Evidence map[string]any `json:"evidence"`
+	Seq      int64  `json:"seq"`
+	PrevHash string `json:"prev_hash"`
+	Hash     string `json:"record_hash"`
+	Stage    string `json:"stage"`
+	Scorer   string `json:"scorer_id"`
+	Intel    any    `json:"intel"`
+	Evidence any    `json:"evidence"`
 	Policy   struct {
 		Action   string `json:"action"`
 		ActionID string `json:"action_id"`
@@ -108,7 +110,7 @@ func evidenceLines(record ledgerRecord) []string {
 	}
 	for _, section := range []struct {
 		name  string
-		value map[string]any
+		value any
 	}{{"intel", record.Intel}, {"evidence", record.Evidence}} {
 		if encoded, err := encodeSection(section.value); err == nil && encoded != "" {
 			lines = append(lines, section.name+": "+encoded)
@@ -117,8 +119,10 @@ func evidenceLines(record ledgerRecord) []string {
 	return lines
 }
 
-func encodeSection(value map[string]any) (string, error) {
-	if len(value) == 0 {
+// encodeSection renders one section for the operator. Event values are attacker-influenced, so
+// control, format (bidi) and other non-printing runes are shown as \u escapes, never raw.
+func encodeSection(value any) (string, error) {
+	if value == nil {
 		return "", nil
 	}
 	raw, err := json.Marshal(value)
@@ -126,7 +130,19 @@ func encodeSection(value map[string]any) (string, error) {
 		return "", err
 	}
 	canonical, err := canonjson.Canonicalize(raw)
-	return string(canonical), err
+	return neutralise(string(canonical)), err
+}
+
+func neutralise(text string) string {
+	var out strings.Builder
+	for _, r := range text {
+		if unicode.IsPrint(r) {
+			out.WriteRune(r)
+		} else {
+			fmt.Fprintf(&out, `\u%04x`, r)
+		}
+	}
+	return out.String()
 }
 
 // recordHash is sha256 of the canonical record without its record_hash, as the ledger computes it.

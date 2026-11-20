@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/metacogna/sentinel-hunter/canonjson"
 	"github.com/metacogna/sentinel-hunter/enforcerd"
 )
 
@@ -125,5 +126,41 @@ func TestApproveWithEvidenceSignsV2(t *testing.T) {
 	}
 	if _, err := ApproveWithEvidence(action, private, "analyst", time.Minute, now, testBreadth, Evidence{Seq: 1, Digest: "short"}); err == nil {
 		t.Fatal("signed with a malformed digest")
+	}
+}
+
+// Real records store evidence as a list of {key, value, class}, and values come from the target.
+func TestVerifyEvidenceHandlesRealRecordShapeAndNeutralisesTerminalControls(t *testing.T) {
+	record := map[string]any{
+		"seq": 0, "prev_hash": genesis, "stage": "propose", "scorer_id": "s", "challengers": map[string]any{},
+		"intel":    map[string]any{"confidence": 0.9, "rationale": []any{"observed jarm is on the pinned lab badlist"}},
+		"evidence": []any{map[string]any{"key": "common_name", "value": "ok‮evil\u009b2J\x7f", "class": "OBSERVED"}},
+		"policy":   map[string]any{"action": "mitigate", "action_id": "act-9", "target": "198.51.100.9", "broad": false},
+	}
+	raw, _ := json.Marshal(record)
+	body, err := canonjson.Canonicalize(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash, err := recordHash(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record["record_hash"] = hash
+	raw, _ = json.Marshal(record)
+	line, _ := canonjson.Canonicalize(raw)
+	action := enforcerd.Action{ID: "act-9", Kind: enforcerd.KindNFTables, Target: "198.51.100.9"}
+	got, err := VerifyEvidence(strings.NewReader(string(line)), 0, hash, action)
+	if err != nil {
+		t.Fatalf("real-shaped record refused: %v", err)
+	}
+	shown := strings.Join(got.Lines, "\n")
+	for _, raw := range []string{"‮", "\u009b", "\x7f", "\x1b"} {
+		if strings.Contains(shown, raw) {
+			t.Errorf("display line carries raw control %q", raw)
+		}
+	}
+	if !strings.Contains(shown, `\u202e`) || !strings.Contains(shown, "common_name") {
+		t.Fatalf("display = %q", shown)
 	}
 }
