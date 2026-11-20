@@ -4,7 +4,9 @@ go 1.27.3
 
 require (
 	github.com/dgraph-io/badger/v4 v4.9.6
+	github.com/projectdiscovery/fastdialer v0.6.3
 	github.com/projectdiscovery/httpx v1.12.0
+	github.com/projectdiscovery/networkpolicy v0.1.58
 	github.com/projectdiscovery/tlsx v1.5.0
 	google.golang.org/grpc v1.85.0
 )
@@ -92,7 +94,6 @@ require (
 	github.com/projectdiscovery/cdncheck v1.2.51 // indirect
 	github.com/projectdiscovery/clistats v0.1.6 // indirect
 	github.com/projectdiscovery/dsl v0.8.22 // indirect
-	github.com/projectdiscovery/fastdialer v0.6.3 // indirect
 	github.com/projectdiscovery/fdmax v0.0.4 // indirect
 	github.com/projectdiscovery/freeport v0.0.7 // indirect
 	github.com/projectdiscovery/goconfig v0.0.1 // indirect
@@ -104,7 +105,6 @@ require (
 	github.com/projectdiscovery/jarm-go v0.0.0-20260910160638-430e2bae86f6 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20250715113114-c77eb3567582 // indirect
 	github.com/projectdiscovery/mapcidr v1.1.97 // indirect
-	github.com/projectdiscovery/networkpolicy v0.1.58 // indirect
 	github.com/projectdiscovery/ratelimit v0.0.88 // indirect
 	github.com/projectdiscovery/rawhttp v0.1.92 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.118 // indirect
