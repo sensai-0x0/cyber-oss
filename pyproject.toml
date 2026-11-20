@@ -10,6 +10,12 @@ dependencies = [
   "PyYAML>=6.0,<7.0",
 ]
 
+[project.optional-dependencies]
+# Graph store (plans/graph-store). Not imported by anything yet; install with `uv sync --extra graph`.
+graph = [
+  "graphiti-core[falkordb,anthropic]>=0.30.2",
+]
+
 [dependency-groups]
 dev = [
   "pytest>=8.3,<10.0",
