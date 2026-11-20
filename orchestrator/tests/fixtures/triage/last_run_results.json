@@ -1,0 +1,12 @@
+{
+  "benign_count": 70,
+  "false_negative": 30,
+  "false_positive": 0,
+  "precision": null,
+  "recall": 0.0,
+  "staging_count": 30,
+  "threshold": 0.8,
+  "total": 100,
+  "true_negative": 70,
+  "true_positive": 0
+}
