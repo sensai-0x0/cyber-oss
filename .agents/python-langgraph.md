@@ -18,6 +18,7 @@ One responsibility per module. A node function lives beside the logic it runs, n
 | `orchestrator/provenance.py` | Evidence classes (OBSERVED, DERIVED, ASSERTED), the pinned badlist check | Scoring weights, I/O beyond the pinned file |
 | `orchestrator/ledger.py` | Hash-chained append-only ledger, `record` node factory, `verify` CLI | Reads during triage |
 | `orchestrator/eval/replay.py` | Replay a campaign timeline through a scorer; lead time, precision, false-block cost | Graph building, checkpointers, file writes |
+| `orchestrator/campaign.py` | Shadow campaign belief scorer and its bounded SQLite store | Anything that writes `GraphState` or a policy decision |
 | `orchestrator/policy.py` | `load_policy`, `synthesize_policy`, `approve_policy` | Scoring, clustering |
 | `orchestrator/graph.py` | `build_graph(checkpointer=None)`: nodes, edges, compile | Business logic |
 | `orchestrator/policy.yaml` | Every threshold and TTL bound | Code |
