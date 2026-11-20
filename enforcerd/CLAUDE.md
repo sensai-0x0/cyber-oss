@@ -6,7 +6,7 @@ Universal rules: [../CLAUDE.md](../CLAUDE.md).
 
 **Boundaries**
 
-- Fail closed: `SignedBackend.Apply` refuses a missing, malformed or invalid signature, and a broad action without `Approved` and a named `ApprovedBy` (I14). Wire `SignedBackend` around every real backend; a bare `Enforcer` does not check signatures.
+- Fail closed: `SignedBackend.Apply` refuses a missing, malformed or invalid signature, and a broad action without `Approved` and a named `ApprovedBy` (I14). Wire `SignedBackend` around every real backend; a bare `Enforcer` does not check signatures. `SignedBackend.Breadth` is required: `broad` is derived from the target (`Breadth.Derive`, thresholds parsed from `orchestrator/policy.yaml`) and a disagreeing flag fails with `ErrBroadMismatch` (SHR-001). A bare `Enforcer` still trusts `Action.Broad`.
 - Any change to an approved payload invalidates its signature; the canonical form covers approval, TTL and expiry. Do not add unsigned fields that alter behavior.
 - TTL is mandatory and at most 24 hours (`MaxTTL`, I11). No permanent rules.
 - Failed revocation stays tracked and retryable; never drop the entry on error (I13).

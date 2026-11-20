@@ -79,11 +79,16 @@ func canonicalAction(action Action) ([]byte, error) {
 type SignedBackend struct {
 	PublicKey ed25519.PublicKey
 	Backend   Backend
+	// Breadth is required. Broad is derived from the target here, never trusted from the caller (SHR-001).
+	Breadth Breadth
 }
 
 func (s SignedBackend) Apply(ctx context.Context, action Action) error {
 	if s.Backend == nil {
 		return errors.New("signed backend is not configured")
+	}
+	if err := s.Breadth.Check(action.Target, action.Broad); err != nil {
+		return err
 	}
 	if action.Broad && (!action.Approved || action.ApprovedBy == "") {
 		return fmt.Errorf("%w: named operator approver is required", ErrApprovalRequired)

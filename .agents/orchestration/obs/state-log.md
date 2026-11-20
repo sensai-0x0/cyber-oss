@@ -54,6 +54,7 @@ wiring, not missing primitives — and four of them are invariants with no enfor
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-20 | SHR-001: Go derives `broad` from the target; `operator.Approve` and `SignedBackend` refuse a disagreeing flag | Phase 5 prerequisite. Tests in `enforcerd/breadth_test.go` and `operator/decision_test.go`. A bare `Enforcer` still trusts `Action.Broad` |
 | 2026-11-21 | Four-service layout is authoritative; single-binary MCP design superseded | [../../../spec/DECISIONS/0003-architecture-authority.md](../../../spec/DECISIONS/0003-architecture-authority.md). Code, schemas, CI and the accepted ADRs all implement it |
 | 2026-11-21 | Outlines are gated, not merely conventional | 32 of 35 project markdown files had dead links and nothing could detect it. See [../../outline-method.md](../../outline-method.md) |
 | 2026-11-21 | Language idioms split into `.agents/go.md` and `.agents/python-langgraph.md` | One file per language, grounded in the implemented code |

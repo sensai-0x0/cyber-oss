@@ -8,6 +8,7 @@ Universal rules: [../CLAUDE.md](../CLAUDE.md).
 
 - Never touches firewall, DNS or any backend state; it imports `enforcerd` types and signing only (I7).
 - A decision requires a non-empty operator name. Approval requires `0 < ttl <= 24h` (I11); `Reject` clears the signature.
+- `Approve` takes an `enforcerd.Breadth` and refuses to sign when the claimed `broad` disagrees with the target (SHR-001). The CLI reads thresholds from `-policy` (default `orchestrator/policy.yaml`).
 - Never sign without a human decision; no auto-approve path, no default `approve`. The `review` default is `reject`.
 - Private keys are never committed, logged or printed; keys are written with mode 0600. Keep key paths out of the repo.
 - Do not change the canonical signed form here; that lives in `enforcerd/verify_signature.go` and a change needs a new schema version.

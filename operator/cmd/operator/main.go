@@ -38,7 +38,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: operator keygen -out-prefix KEY | operator review -key PRIVATE -decision approve|reject -operator NAME -ttl 15m < action.json")
+		return errors.New("usage: operator keygen -out-prefix KEY | operator review -key PRIVATE -decision approve|reject -operator NAME -ttl 15m [-policy PATH] < action.json")
 	}
 	switch args[0] {
 	case "keygen":
@@ -64,7 +64,12 @@ func run(args []string) error {
 		decision := flags.String("decision", "reject", "approve or reject")
 		name := flags.String("operator", "", "operator identity")
 		ttl := flags.Duration("ttl", 15*time.Minute, "bounded mitigation TTL")
+		policyPath := flags.String("policy", "orchestrator/policy.yaml", "policy file holding the broad prefix thresholds")
 		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		breadth, err := loadBreadth(*policyPath)
+		if err != nil {
 			return err
 		}
 		private, err := os.ReadFile(*keyPath)
@@ -78,7 +83,7 @@ func run(args []string) error {
 		action := enforcerd.Action{ID: input.ID, Kind: enforcerd.Kind(input.Kind), Target: input.Target, Broad: input.Broad}
 		var output enforcerd.Action
 		if *decision == "approve" {
-			output, err = operatorcore.Approve(action, private, *name, *ttl, time.Now())
+			output, err = operatorcore.Approve(action, private, *name, *ttl, time.Now(), breadth)
 		} else if *decision == "reject" {
 			output, err = operatorcore.Reject(action, private, *name, time.Now())
 		} else {
@@ -91,6 +96,15 @@ func run(args []string) error {
 	default:
 		return errors.New("unknown operator command")
 	}
+}
+
+func loadBreadth(path string) (enforcerd.Breadth, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return enforcerd.Breadth{}, fmt.Errorf("open policy: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+	return enforcerd.ParseBreadth(file)
 }
 
 func toWire(action enforcerd.Action) wireAction {
