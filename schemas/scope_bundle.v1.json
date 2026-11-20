@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/metacogna/sentinel-hunter/schemas/scope_bundle.v1.json",
+  "title": "Sentinel Hunter signed scope bundle v1",
+  "description": "Authorized engagement scope, signed by an offline scope key (fleet plan Phase 1, ADR 0007). Enforced in hunterd/scope before any dial (I1-I5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "bundle_id", "engagement_id", "scope_epoch",
+    "not_before", "not_after", "auth_ref", "targets", "ports",
+    "probe_kinds", "rate", "key_id", "signature"
+  ],
+  "properties": {
+    "schema_version": { "const": "v1" },
+    "bundle_id": { "type": "string", "minLength": 1 },
+    "engagement_id": { "type": "string", "minLength": 1 },
+    "scope_epoch": { "type": "integer", "minimum": 0 },
+    "not_before": { "type": "string", "format": "date-time" },
+    "not_after": { "type": "string", "format": "date-time" },
+    "auth_ref": { "type": "string", "minLength": 1 },
+    "targets": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "CIDRs or hostnames authorized by the client (I5). Never empty (I4)."
+    },
+    "exclusions": {
+      "type": "array", "default": [],
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "ports": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "integer", "minimum": 1, "maximum": 65535 }
+    },
+    "probe_kinds": {
+      "type": "array", "minItems": 1,
+      "items": { "enum": ["tls", "jarm", "http"] }
+    },
+    "domain_watchlist": {
+      "type": "array", "default": [],
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Hostnames for future CT-stream matching (source: ct). Not enforced by hunterd/scope today."
+    },
+    "rate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["global_cps", "per_block_cps", "per_ip_per_min", "per_worker_max_cps"],
+      "properties": {
+        "global_cps": { "type": "integer", "minimum": 1 },
+        "per_block_cps": { "type": "integer", "minimum": 1 },
+        "per_ip_per_min": { "type": "integer", "minimum": 1 },
+        "per_worker_max_cps": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "key_id": { "type": "string", "minLength": 1 },
+    "signature": { "type": "string", "contentEncoding": "base64" }
+  }
+}
