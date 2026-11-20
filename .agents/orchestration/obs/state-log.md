@@ -62,6 +62,8 @@ wiring, not missing primitives — and four of them are invariants with no enfor
 | 2026-11-21 | Orchestrator-side skills live in `.claude/skills/` | `validate_skills.py` caps `.agents/skills/` at five and it is full |
 | 2026-11-20 | All safety bounds enforced in Go only | LLM output is untrusted. See [../invariants.md](../invariants.md) I7. Aspiration today, not implemented |
 | 2026-11-20 | Only Opus 5.5, Sonnet 5.5, Haiku 5.5 used | See [../models.md](../models.md) |
+| 2026-11-20 | Integration gate: `feature/fleet-p0-adr` (`239ee97`) merged to `develop` | Docs and ADR 0007 only (accepted, approver recorded). go vet, go test -race, gofmt, ruff, pytest, validate_outlines, validate_skills, compose config all pass. No code, so code and security review found nothing in it |
+| 2026-11-20 | Integration gate: `claude/bold-mccarthy-bsf51t` (`f335d49`, ADR 0005 Phase 5 and SHR-001) **returned, not merged** | Mechanical checks and `/security-review` pass (no finding at confidence 8 or above; a Medium, confidence 7: the branch's operator evidence printer shows `Target`, `Action` and `Scorer` on the proposal line without `neutralise`). `/code-review` medium found six important bugs: `citedEvidence` does not bind `kind` (or `broad`) to the record; Go and Python classify IPv4-mapped ranges differently; Python stores raw URL or host:port targets that Go rejects; `VerifyEvidence` accepts proposals already rejected; a stale `proposal` in `GraphState` leaks `proposal_seq` into later runs; `operator review` loads the policy before checking the decision, so `-decision reject` fails outside the repo root. Fix with tests first, then gate again |
 
 ## Open questions
 
