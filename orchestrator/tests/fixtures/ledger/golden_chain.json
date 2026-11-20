@@ -1,0 +1,24 @@
+{
+  "first": {
+    "challengers": {},
+    "event": {
+      "id": "a"
+    },
+    "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "record_hash": "fcd063c8849af82851fa52cf3dbeec851a15f3f66eeb1f8189c21f412775c734",
+    "recorded_at": "2026-01-02T03:04:05+00:00",
+    "scorer_id": "s",
+    "seq": 0
+  },
+  "second": {
+    "challengers": {},
+    "event": {
+      "id": "b"
+    },
+    "prev_hash": "fcd063c8849af82851fa52cf3dbeec851a15f3f66eeb1f8189c21f412775c734",
+    "record_hash": "7eea9e2784dfe82dc3ba34f71f75943474f04bf26c666e306fb2184e8bf33f87",
+    "recorded_at": "2026-01-02T03:04:05+00:00",
+    "scorer_id": "s",
+    "seq": 1
+  }
+}
