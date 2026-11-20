@@ -116,9 +116,21 @@ def check_links(path: Path, text: str, relative: str) -> list[str]:
     return errors
 
 
-def check_paths(root: Path, text: str, relative: str, status: str | None = None) -> list[str]:
+def path_exists(root: Path, document: Path, candidate: str) -> bool:
+    """A backticked path may be written from the repo root or from the file's directory.
+
+    Both spellings are idiomatic in these documents, so either resolving is enough.
+    """
+    cleaned = candidate.rstrip("/")
+    return (root / cleaned).exists() or (document.parent / cleaned).exists()
+
+
+def check_paths(
+    root: Path, text: str, relative: str, status: str | None = None, document: Path | None = None
+) -> list[str]:
     if relative.startswith(PATH_CHECK_EXEMPT) or status in HISTORICAL:
         return []
+    document = document or root / relative
     fenced = code_line_numbers(text)
     errors = []
     for number, line in enumerate(text.splitlines(), start=1):
@@ -128,7 +140,7 @@ def check_paths(root: Path, text: str, relative: str, status: str | None = None)
             candidate = candidate.strip()
             if not looks_like_path(candidate):
                 continue
-            if not (root / candidate.rstrip("/")).exists():
+            if not path_exists(root, document, candidate):
                 errors.append(
                     f"{relative}:{number}: path {candidate!r} does not exist; "
                     f"mark it (planned) or correct it"
@@ -174,7 +186,7 @@ def validate_tree(root: Path) -> tuple[list[str], list[str]]:
         declared = STATUS.search(text)
         status = declared.group(1).lower() if declared else None
         errors.extend(check_links(path, text, relative))
-        errors.extend(check_paths(root, text, relative, status))
+        errors.extend(check_paths(root, text, relative, status, path))
         errors.extend(check_thresholds(text, relative, thresholds))
         warnings.extend(check_provenance(text, relative))
     return errors, warnings

@@ -119,6 +119,13 @@ def test_authoritative_status_does_not_exempt_path_existence(tmp_path):
     assert any("does not exist" in error for error in errors)
 
 
+def test_accepts_a_path_written_relative_to_the_document(tmp_path):
+    """`../spec/ARCHITECTURE.md` is as valid a spelling as the root-relative form."""
+    root = build_root(tmp_path, "\nSee `../spec/ARCHITECTURE.md` for the layout.\n")
+    errors, _ = validator.validate_tree(root)
+    assert errors == []
+
+
 def test_ignores_placeholder_templates(tmp_path):
     root = build_root(tmp_path, "\nResults go to `results/<phase>-<date>.json`.\n")
     errors, _ = validator.validate_tree(root)
