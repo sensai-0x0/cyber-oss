@@ -22,10 +22,13 @@ they named were never built. The boundaries they tested exist, under different n
 - Reaper removes expired rules after a simulated crash (I12, I13). The enforcer keeps
   pending actions in memory and never persists before install, so this cannot pass yet.
 - Rate limit holds under concurrent probes (I6). No limiter exists yet.
-- Scope: an off-scope target is refused before any dial, and a redirect off-scope is not
-  followed (I1-I5, I2). **No enforcement point exists** — see ADR 0003 consequence 4.
-  Until it lands these assertions have nothing to target, and the gap must be reported as
-  absent rather than passing.
+- Scope: an off-scope target is refused before any dial (I1-I5, I2), proven in
+  `hunterd/scope/*_test.go` and `hunterd/probes/authorizer_wiring_test.go`. `HTTPRunner` never
+  follows a redirect at all (`FollowRedirects` is left unset), so "a redirect off-scope is not
+  followed" holds by construction there; `TLSRunner`'s L2 `OnValidateTarget` hook re-checks the
+  real socket address on every dial attempt the underlying dialer makes. E03 (fuzz + packet
+  capture against a live lab network) has still never run — this suite proves the Go-level
+  logic, not the on-the-wire guarantee.
 
 ## Rules
 

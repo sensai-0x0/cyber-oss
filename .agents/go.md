@@ -10,6 +10,7 @@ Universal rules in [../CLAUDE.md](../CLAUDE.md). Python rules in [python-langgra
 | `hunterd/cursor` | Keyed Feistel bijection over IPv4 CIDRs; `Range` is the resumable iterator |
 | `hunterd/store` | BadgerDB lifecycle, checkpoints, `DeltaGate` novelty decision |
 | `hunterd/probes` | Run tlsx/httpx, normalize to `Observation` (DeltaEvent v1) |
+| `hunterd/scope` | Verify a signed scope bundle, authorize targets before any dial (I1-I5) |
 | `hunterd/cmd/hunterd` | CLI, gRPC health, bounded NDJSON server. Wiring only |
 | `enforcerd` | `Action`, `Enforcer`, `Backend` interface, TTL, Ed25519 verification |
 | `enforcerd/nft`, `enforcerd/rpz` | Executable adapters. No policy |
@@ -32,7 +33,7 @@ Universal rules in [../CLAUDE.md](../CLAUDE.md). Python rules in [python-langgra
 | Process execution | `nft.Executor`, `rpz.Executor` | Fake that records `name` and `args` |
 | Authorization | `enforcerd.SignedBackend` wrapping a `Backend`; `NewEnforcer` accepts nothing else | Real keys generated in-test; `SignedBackend.Now` pins the clock |
 | Clock | `Enforcer.now` field; `now time.Time` parameter on `operator.Approve` | Fixed time |
-| Probes | None. `TLSRunner` and `HTTPRunner` are concrete | Test `normalize*` functions on canned results |
+| Probes | `probes.Authorizer` (one method, `CheckHost`), defined by `probes` itself per the rule below | `fakeAuthorizer` recording its calls (`authorizer_wiring_test.go`) |
 
 - A new consumer of a probe runner defines its own one-method interface rather than exporting one from `probes`.
 - Construct new values; do not mutate arguments. `operator.Approve` takes `Action` by value and returns a new one. `DeltaGate.Apply` copies `payload` before storing it (`TestObservationPayloadIsCopied`). `SignAction` takes `*Action` to write the signature; do not extend that pattern.
@@ -58,13 +59,13 @@ Universal rules in [../CLAUDE.md](../CLAUDE.md). Python rules in [python-langgra
 
 ## 5. Security rules specific to this repo
 
-**Scope enforcement does not exist yet.** I1-I5 require an allowlist check in Go before any dial. `HTTPRunner.Probe` and `TLSRunner.Probe` dial after only `ctx.Err()`. No Go file parses configuration or holds an allowlist; `validateEvent` checks event shape, not authorization. See consequence 4 of [../spec/DECISIONS/0003-architecture-authority.md](../spec/DECISIONS/0003-architecture-authority.md). The enforcement point is a scope package (planned), not yet created. Until it lands:
+**Scope enforcement (I1-I5) is `hunterd/scope`.** `TLSRunner.Probe` and `HTTPRunner.Probe` both require a non-nil `probes.Authorizer` and call `CheckHost` before any dial; `NewTLSRunner`/`NewHTTPRunner` refuse a nil one. `scope.Parse` verifies an Ed25519-signed bundle (window, epoch, non-empty targets) before an `Authorizer` can be built from it — an empty or unsigned bundle never reaches `NewAuthorizer`. See fleet plan Phase 1 and [../plans/fleet/README.md](../plans/fleet/README.md).
 
-- Do not add a new code path that dials, resolves, or follows a redirect.
-- Do not write a probe caller that assumes the runner checks scope. It does not.
-- Do not describe scope as enforced in docs or comments.
+- `hunterd/cmd/hunterd` does not yet load a bundle at startup or wire these runners into `serve`; that lands with the NATS/fleet mode (fleet plan Phase 4). Until then, active probing still belongs in `lab/`.
+- `Authorizer` decides allow/deny itself from parsed CIDRs and anchored hostname regexes; it never asks `networkpolicy.NetworkPolicy` what an empty allow-list means, because that library treats "no CIDR entry" as "no restriction" (allow every address) — the opposite of I4. `networkpolicy` is used only as an optional L2 handle (`Authorizer.NetworkPolicy()`), and only once there is a CIDR entry to build it from.
+- A bare hostname entry (`"example.com"`) is anchored and escaped before matching (`^` + `regexp.QuoteMeta` + `$`); passing it unanchored into a regex-based matcher would also match `"notexample.com.attacker.net"` (I5).
 
-When it is built, it must meet these rules:
+These rules hold for any future scope code:
 
 | Rule | Invariant |
 |---|---|
@@ -138,7 +139,7 @@ uv run python .github/scripts/validate_outlines.py .   # when .agents/, spec/ or
 | Pattern | Why it is wrong here | Replacement |
 |---|---|---|
 | `exec.Command("sh", "-c", ...)` or string-built command | Target text becomes shell syntax | `exec.CommandContext(ctx, name, args...)`; validate each argument |
-| Calling `Probe`, `Connect`, or `RunEnumeration` before a scope check | Sends packets at an unauthorized target (I1, I2) | Check the allowlist first; check every resolved IP and redirect hop |
+| Calling `Probe`, `Connect`, or `RunEnumeration` before `Authorizer.CheckHost` | Sends packets at an unauthorized target (I1, I2) | `CheckHost` first; it checks every resolved IP (I2) |
 | `Backend.Apply` before the Badger write | A crash leaves a rule no reaper knows about (I12) | Persist `mitigate:rule:<id>`, then apply |
 | `Action` with zero or unbounded TTL | Permanent rule (I11) | `ValidateTTL`; never bypass `MaxTTL` |
 | `panic`, `log.Fatal`, or `os.Exit` in a daemon path | Kills the daemon and strands active rules | Return a wrapped error to `main` |

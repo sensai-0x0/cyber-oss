@@ -25,7 +25,7 @@ from memory.
 | Loopback lab | `lab/`, `deploy/` | Implemented | `compose config` parses |
 | Outline gate | `.github/scripts/validate_outlines.py` | Implemented, tested | `.github/scripts/tests/test_validate_outlines.py` |
 | Orchestrator agent + skills | `.claude/` | Implemented, uncalled | No recorded phase run |
-| **Scope enforcement (I1-I5)** | — | **Absent** | No allowlist, no config loader in Go |
+| Scope enforcement (I1-I5) | `hunterd/scope` | Implemented, tested | `hunterd/scope/*_test.go`, `hunterd/probes/authorizer_wiring_test.go`. Not yet wired into `hunterd/cmd/hunterd serve` (fleet plan Phase 4); E03's packet-capture layer still has not run |
 | **Rate limiter (I6)** | — | **Absent** | No limiter in Go |
 | **Mitigation durability (I12, I13)** | — | **Absent** | Enforcer holds pending actions in memory |
 | **Cursor checkpointing (I16)** | — | **Unwired** | Nothing calls `SaveCursor` |
@@ -38,10 +38,11 @@ wiring, not missing primitives — and four of them are invariants with no enfor
 
 ## Plan (next steps)
 
-1. **Scope gate (I1-I5).** A package owning the authorized allowlist, enforced before any
-   dial, wired into both probe runners, with the off-scope and redirect tests from
-   [../../testing.md](../../testing.md). Highest priority in the repository; no active
-   probing outside `lab/` until it lands.
+1. ~~**Scope gate (I1-I5).**~~ Done on `docs/ml-add-phase7-prep` (2026-11-21): `hunterd/scope`
+   owns the authorized allowlist (a signed bundle), wired into both probe runners via the
+   `probes.Authorizer` seam. Still open: wiring a real bundle into `hunterd/cmd/hunterd serve`
+   (fleet plan Phase 4), HC-2 (scope key custody), and E03's packet-capture layer. No active
+   probing outside `lab/` until those land too.
 2. **Mitigation durability (I12, I13).** Persist the action record before installing a
    rule; reaper on startup and on a timer.
 3. **Rate limiter (I6).** One shared token bucket across both runners.
@@ -55,6 +56,7 @@ wiring, not missing primitives — and four of them are invariants with no enfor
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-21 | Scope gate (I1-I5, SHR-011) built in `hunterd/scope`, on `docs/ml-add-phase7-prep` | Fleet plan Phase 1. `scope.Parse` verifies an Ed25519-signed bundle (window ≤24h, epoch, non-empty targets) before `NewAuthorizer` can build from it; `Authorizer.Check`/`CheckHost` decide allow/deny from parsed CIDRs and anchored hostname regexes itself, never from `networkpolicy.NetworkPolicy`'s own default (an empty CIDR allow-list there means "no restriction", which would invert I4 for a domain-only bundle). `TLSRunner`/`HTTPRunner` require a non-nil `Authorizer` and call `CheckHost` before any dial; `operator scope sign`/`scope verify` added; `keygen`'s silent-overwrite bug fixed (SHR-010). Not done: wiring a bundle into `hunterd/cmd/hunterd serve` (fleet plan Phase 4), HC-2 (scope key custody, blocks using this for a real engagement), and E03's packet-capture layer |
 | 2026-11-21 | Phase 7 scaffolded on `docs/ml-add-phase7-prep`, no implementation | All five deferred-consumer gates (K10, K5, K3, K2, K14) checked against the tree and found unmet; see [../../../plans/ml-add/Phase-7.md](../../../plans/ml-add/Phase-7.md) Gate status. Phase 6's own prerequisites are also incomplete: SHR-003 open, no non-synthetic evidence. Nearest unblocking work is the scope gate (plan item 1) |
 | 2026-11-20 | Fleet command path: the agent talks to `fleetd` over MCP; `fleetd` commands hunters with Ed25519-signed, scoped, expiring `Command v1` envelopes on NATS; stdio MCP only for local and lab runs; `hunterd` stays non-MCP | Approved by Sunyata in the project thread. [../../../spec/DECISIONS/0007-fleet-command-path.md](../../../spec/DECISIONS/0007-fleet-command-path.md); plan in [../../../plans/fleet/README.md](../../../plans/fleet/README.md) |
 | 2026-11-20 | `MinVersion` cut-over scheduled for 2026-12-20 | ADR 0005 resolved question 2: 30 days after Phase 5 reached `develop` (`0a93dcc`, 2026-11-20 22:17 UTC). Until then `SignedBackend.MinVersion` stays v1 and nothing enforces the evidence binding. Setting it to v2 is a deliberate, recorded change and still needs the trust-boundary human sign-off |
@@ -89,7 +91,9 @@ wiring, not missing primitives — and four of them are invariants with no enfor
 | Date | Where | Error | Fix / status |
 |---|---|---|---|
 | 2026-11-20 | `hunterd/store/badger_store.go` | `badger.DefaultOptions` peaked at about 720 MB RSS in a 200k-write test; a small VM would run out of memory | Open; fleet plan phase 2 (tuned options, `GOMEMLIMIT`) |
-| 2026-11-21 | `hunterd/probes/` | Both runners dial immediately; no scope check anywhere (I1-I5) | Open, plan item 1 |
+| 2026-11-21 | `hunterd/probes/` | Both runners dial immediately; no scope check anywhere (I1-I5) | Fixed 2026-11-21, `hunterd/scope`; see plan item 1 |
+| 2026-11-21 | `operator/cmd/operator/main.go` | SHR-010: `keygen` silently overwrote an existing private key | Fixed 2026-11-21, `writeNewFile` (`os.O_EXCL`), `TestKeygenRefusesToOverwriteExistingKey` |
+| 2026-11-21 | `hunterd/probes/http_runner.go` | SHR-017: `OnResult` wrote `result` without synchronizing with the reader; `copy` shadowed the builtin | Fixed 2026-11-21, mutex-guarded read/write, variable renamed |
 | 2026-11-21 | `enforcerd/enforcer.go` | Pending actions held in memory; no pre-install persist, no reaper. A restart loses every active rule's deadline (I12, I13) | Open, plan item 2 |
 | 2026-11-21 | `hunterd` | No rate limiter (I6) | Open, plan item 3 |
 | 2026-11-21 | `hunterd/store` | `SaveCursor` exists but nothing calls it (I16) | Open, plan item 4 |
