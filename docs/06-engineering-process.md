@@ -1,5 +1,7 @@
 # Engineering Process
 
+> For a full catalog of every agent referenced in this document — runtime graph nodes, the superseded LLM hunt-agent design, the five skills, and the Master Orchestrator's subagent roles — see [agentlibrary.md](agentlibrary.md).
+
 Sentinel Hunter is built by a small set of composable agent skills under explicit handoff rules, verified by a fixed local test/lint/compose pipeline, and — as a separate, higher-level layer — developed under an autonomous orchestration plan that allocates models, phases work, and evolves its own allocation policy between phases. This file describes all three layers and is honest about where the plan has drifted from the implementation, since that drift is itself informative about where the project actually is.
 
 ## 1. Verification pipeline (what every change must pass)

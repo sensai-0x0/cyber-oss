@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/metacogna/sentinel-hunter/docs/reviews/schema.json",
+  "title": "Sentinel Hunter review register entry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "review_id",
+    "registered_at",
+    "branch",
+    "commit",
+    "severity",
+    "category",
+    "confidence",
+    "status",
+    "file",
+    "lines",
+    "principle",
+    "finding",
+    "impact",
+    "recommendation",
+    "deterministic_alternative",
+    "verification"
+  ],
+  "properties": {
+    "schema_version": { "const": "v1" },
+    "review_id": { "type": "string", "pattern": "^SHR-[0-9]{3}$" },
+    "registered_at": { "type": "string", "format": "date" },
+    "branch": { "type": "string", "minLength": 1 },
+    "commit": { "type": "string", "minLength": 1 },
+    "severity": { "enum": ["critical", "high", "medium", "low"] },
+    "category": { "type": "string", "minLength": 1 },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "status": { "enum": ["open", "accepted", "in_progress", "resolved", "wont_fix"] },
+    "file": { "type": "string", "minLength": 1 },
+    "lines": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 1 },
+        "end": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "principle": { "type": "string", "minLength": 1 },
+    "finding": { "type": "string", "minLength": 20 },
+    "impact": { "type": "string", "minLength": 10 },
+    "recommendation": { "type": "string", "minLength": 10 },
+    "deterministic_alternative": { "type": ["string", "null"] },
+    "verification": { "type": "string", "minLength": 1 }
+  }
+}
