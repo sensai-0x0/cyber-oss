@@ -43,3 +43,28 @@ services:
       - NET_ADMIN
     network_mode: host
     profiles: ["privileged-lab"]
+
+  # Graph store (plans/graph-store, Phase 1). Opt in with `--profile graph`.
+  # No published ports: reachable only by services on graphnet, which is internal.
+  falkordb:
+    build:
+      context: ../.docker/falkordb
+    profiles: ["graph"]
+    environment:
+      REDIS_ARGS: "--requirepass ${FALKORDB_PASSWORD:?set FALKORDB_PASSWORD}"
+      FALKORDB_ARGS: "THREAD_COUNT 2"
+      FALKORDB_PASSWORD: "${FALKORDB_PASSWORD:?set FALKORDB_PASSWORD}"
+    volumes:
+      - falkordb-data:/var/lib/falkordb/data
+    networks:
+      - graphnet
+    cpus: 2
+    mem_limit: 1g
+    restart: unless-stopped
+
+networks:
+  graphnet:
+    internal: true
+
+volumes:
+  falkordb-data:
