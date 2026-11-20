@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol
 
+from orchestrator.campaign import CampaignScorer
 from orchestrator.policy import classify_target, load_policy
 from orchestrator.score import score_threat_intel
 
@@ -55,7 +56,7 @@ class LegacyFlagScorer:
         return min(confidence, 0.99)
 
 
-SCORERS = {"heuristic": HeuristicScorer, "legacy": LegacyFlagScorer}
+SCORERS = {"heuristic": HeuristicScorer, "legacy": LegacyFlagScorer, "campaign": CampaignScorer}
 
 
 def load_campaigns(path: str | Path) -> list[dict[str, Any]]:
@@ -140,7 +141,7 @@ def replay(
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
     if len(args) != 2 or args[0] not in SCORERS:
-        print("usage: python -m orchestrator.eval.replay {heuristic|legacy} DATASET.jsonl")
+        print("usage: python -m orchestrator.eval.replay {heuristic|legacy|campaign} DATASET.jsonl")
         return 2
     report = replay(load_campaigns(args[1]), SCORERS[args[0]]())
     report["lead_time_hours"].pop("values")

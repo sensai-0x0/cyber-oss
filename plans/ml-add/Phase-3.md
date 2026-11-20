@@ -1,6 +1,6 @@
 # Phase 3: Eval substrate, with non-separable data and lead-time replay (K7, K9)
 
-**Status:** built, human checkpoint pending · **Derived from:** [README.md](README.md), [Phase-2.md](Phase-2.md), E07 in [../../.agents/evals/evals.md](../../.agents/evals/evals.md) · **Updated:** 2026-11-20
+**Status:** active · **Derived from:** [README.md](README.md), [Phase-2.md](Phase-2.md), E07 in [../../.agents/evals/evals.md](../../.agents/evals/evals.md) · **Updated:** 2026-11-20
 
 **Depends on:** Phase 2. **Blocks:** Phase 4. The scorer cannot be measured until this exists.
 

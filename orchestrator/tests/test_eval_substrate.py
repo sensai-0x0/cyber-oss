@@ -197,7 +197,12 @@ def test_replay_never_touches_the_graph_or_the_filesystem(tmp_path, monkeypatch)
 
 
 @pytest.mark.parametrize(
-    ("name", "key"), [("legacy", "legacy.flags"), ("heuristic", "heuristic.badlist.v1")]
+    ("name", "key"),
+    [
+        ("legacy", "legacy.flags"),
+        ("heuristic", "heuristic.badlist.v1"),
+        ("campaign", "campaign.belief.v1"),
+    ],
 )
 def test_scorer_results_match_the_recorded_baseline(name, key):
     """A scorer change shows up here. Re-record the baseline deliberately, with the reason."""

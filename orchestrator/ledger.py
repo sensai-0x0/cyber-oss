@@ -14,7 +14,7 @@ import json
 import logging
 import sqlite3
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
@@ -74,7 +74,7 @@ class Ledger:
                 "seq": seq,
                 "prev_hash": prev_hash,
                 "recorded_at": self._clock().isoformat(),
-                "challengers": {},
+                "challengers": fields.get("challengers", {}),
             }
             record["record_hash"] = record_hash(record)
             connection.execute(
@@ -135,12 +135,39 @@ def build_record_fields(state: GraphState) -> dict[str, Any]:
     }
 
 
-def make_record_node(writer: LedgerWriter) -> Callable[[GraphState], dict[str, Any]]:
-    """A node that appends one record and never changes state or a decision."""
+class Challenger(Protocol):
+    """A shadow scorer. Its output goes into the ledger record and nowhere else."""
+
+    name: str
+
+    def observe(self, event: dict[str, Any]) -> dict[str, Any]: ...
+
+
+def run_challengers(state: GraphState, challengers: Sequence[Challenger]) -> dict[str, Any]:
+    """Score the same event with each challenger; an exception is recorded, never raised."""
+    results: dict[str, Any] = {}
+    for challenger in challengers:
+        try:
+            results[challenger.name] = challenger.observe(state["event"])
+        except Exception as error:
+            LOGGER.exception("challenger %s failed", challenger.name)
+            results[challenger.name] = {"error": f"{type(error).__name__}: {error}"}
+    return results
+
+
+def make_record_node(
+    writer: LedgerWriter, challengers: Sequence[Challenger] = ()
+) -> Callable[[GraphState], dict[str, Any]]:
+    """A node that appends one record and never changes state or a decision.
+
+    Challengers run here, after the champion has decided, and write only into the record.
+    """
 
     def record(state: GraphState) -> dict[str, Any]:
         try:
-            writer.append(build_record_fields(state))
+            fields = build_record_fields(state)
+            fields["challengers"] = run_challengers(state, challengers)
+            writer.append(fields)
         except Exception:  # a ledger fault must not alter or block the decision
             event_id = str(state.get("event", {}).get("event_id", "unknown"))
             LOGGER.exception("ledger write failed; run left unrecorded: %s", event_id)

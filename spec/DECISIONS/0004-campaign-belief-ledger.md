@@ -23,3 +23,7 @@
 - More decisions reach a human. That is the safe direction, and it is reversible by reverting the branch.
 - The Go side still trusts a caller-supplied `broad` (SHR-001). Python now derives it, but until the Go enforcer does the same, a forged input that bypasses Python is still possible. SHR-001 stays open and blocks Phases 5 and 6.
 - Open question: ledger retention. The ledger must not hold real targets in the lab.
+
+## Addendum (Phase 4): refinement loop, SHR-014
+
+Decision: the refinement cycle (`route_after_intel` returning to `cluster`) is to be removed. On the Phase 3 dataset the policy is identical with refinement on and off (`orchestrator/tests/test_campaign.py`), since the second pass repeats a deterministic computation whose output the scorer does not read. The removal touches the `cycles` state key, `max_refinement_cycles` and `AMBIGUOUS_FLOOR`, so it is a separate change with its own tests. Until then the loop stays and is bounded by `max_refinement_cycles`.
