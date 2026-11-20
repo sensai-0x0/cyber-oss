@@ -1,6 +1,8 @@
 version: v1
 mitigation_confidence: 0.8
 broad_prefix_threshold: 24
+broad_prefix_threshold_v6: 64
+auto_approve_narrow: false
 default_ttl_seconds: 900
 min_approved_ttl_seconds: 60
 max_approved_ttl_seconds: 86400

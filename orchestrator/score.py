@@ -10,6 +10,16 @@ from orchestrator.state import DeltaEvent, GraphState
 AMBIGUOUS_FLOOR = 0.3
 
 
+def _as_int(value: Any) -> int:
+    """Parse an untrusted attribute as a whole number, or 0 when it is not one."""
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        return 0
+    try:
+        return int(value)
+    except ValueError:
+        return 0
+
+
 def score_threat_intel(state: GraphState) -> dict[str, Any]:
     event = DeltaEvent.model_validate(state["event"])
     attributes = event.attributes
@@ -21,7 +31,7 @@ def score_threat_intel(state: GraphState) -> dict[str, Any]:
     if attributes.get("known_bad"):
         confidence += 0.45
         rationale.append("matched high-confidence threat intelligence")
-    shared = min(max(int(attributes.get("shared_fingerprints", 0)), 0), 3)
+    shared = min(max(_as_int(attributes.get("shared_fingerprints", 0)), 0), 3)
     if shared:
         confidence += shared * 0.1
         rationale.append(f"{shared} related fingerprint observations")
