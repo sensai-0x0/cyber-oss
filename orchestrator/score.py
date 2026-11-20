@@ -3,6 +3,7 @@
 from typing import Any
 
 from orchestrator.policy import load_policy
+from orchestrator.provenance import derive_badlist_hits, dropped_asserted
 from orchestrator.state import DeltaEvent, GraphState
 
 # Below this, further clustering cannot change the outcome, so refinement is pointless.
@@ -10,32 +11,32 @@ from orchestrator.state import DeltaEvent, GraphState
 AMBIGUOUS_FLOOR = 0.3
 
 
-def _as_int(value: Any) -> int:
-    """Parse an untrusted attribute as a whole number, or 0 when it is not one."""
-    if isinstance(value, bool) or not isinstance(value, (int, str)):
-        return 0
-    try:
-        return int(value)
-    except ValueError:
-        return 0
+# Hand-set weights. Each independent badlist hit is DERIVED evidence; two reach the
+# default mitigation threshold and one does not. The weights are not learned.
+BASE_CONFIDENCE = 0.1
+BADLIST_HIT_WEIGHT = 0.4
+MAX_CONFIDENCE = 0.99
 
 
 def score_threat_intel(state: GraphState) -> dict[str, Any]:
+    """Score from OBSERVED-derived evidence only. ASSERTED attributes add nothing."""
+    config = load_policy()
     event = DeltaEvent.model_validate(state["event"])
-    attributes = event.attributes
-    confidence = 0.1
+    confidence = BASE_CONFIDENCE
     rationale = []
-    if attributes.get("recent_ct"):
-        confidence += 0.2
-        rationale.append("recent certificate-transparency activity")
-    if attributes.get("known_bad"):
-        confidence += 0.45
-        rationale.append("matched high-confidence threat intelligence")
-    shared = min(max(_as_int(attributes.get("shared_fingerprints", 0)), 0), 3)
-    if shared:
-        confidence += shared * 0.1
-        rationale.append(f"{shared} related fingerprint observations")
-    return {"intel": {"confidence": min(confidence, 0.99), "rationale": rationale}}
+    for field in derive_badlist_hits(event, config):
+        confidence += BADLIST_HIT_WEIGHT
+        rationale.append(f"observed {field} is on the pinned lab badlist")
+    dropped = dropped_asserted(event)
+    for key in dropped:
+        rationale.append(f"ignored producer-asserted attribute {key}")
+    return {
+        "intel": {
+            "confidence": min(confidence, MAX_CONFIDENCE),
+            "rationale": rationale,
+            "dropped_asserted": dropped,
+        }
+    }
 
 
 def route_after_intel(state: GraphState) -> str:

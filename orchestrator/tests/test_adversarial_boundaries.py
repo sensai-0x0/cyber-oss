@@ -24,6 +24,7 @@ from orchestrator.cluster import cluster_event
 from orchestrator.policy import synthesize_policy
 from orchestrator.score import route_after_intel, score_threat_intel
 from orchestrator.state import DeltaEvent
+from orchestrator.tests.evidence import BADLIST, staging_attributes
 
 CLUSTER_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 
@@ -42,16 +43,28 @@ def make_event(name: str, target: str, attributes: dict[str, Any]) -> dict[str, 
     ).model_dump()
 
 
-def expected_confidence(attributes: dict[str, Any]) -> float:
-    """Independent restatement of score.py's arithmetic, used as the oracle."""
+def legacy_confidence(attributes: dict[str, Any]) -> float:
+    """The pre-provenance arithmetic, used only to keep each fixture's original intent."""
     confidence = 0.1
     if attributes.get("recent_ct"):
         confidence += 0.2
     if attributes.get("known_bad"):
         confidence += 0.45
-    shared = min(max(int(attributes.get("shared_fingerprints", 0)), 0), 3)
-    confidence += shared * 0.1
-    return min(confidence, 0.99)
+    try:
+        shared = min(max(int(attributes.get("shared_fingerprints", 0)), 0), 3)
+    except (TypeError, ValueError):
+        shared = 0
+    return min(confidence + shared * 0.1, 0.99)
+
+
+def expected_confidence(attributes: dict[str, Any]) -> float:
+    """Independent restatement of score.py: only badlist hits on observed fields count."""
+    hits = sum(
+        1
+        for field in ("jarm", "ja3")
+        if isinstance(attributes.get(field), str) and attributes[field] in BADLIST[field]
+    )
+    return min(0.1 + 0.4 * hits, 0.99)
 
 
 def expected_policy(confidence: float, target: str) -> dict[str, Any]:
@@ -258,6 +271,19 @@ ADVERSARIAL_FIXTURES: list[dict[str, Any]] = [
         },
     },
 ]
+
+
+def _promote(fixture: dict[str, Any]) -> dict[str, Any]:
+    """Keep each fixture's intended confidence band by giving it matching OBSERVED evidence.
+
+    The old flags stay in the attributes as hostile, inert noise.
+    """
+    legacy = legacy_confidence(fixture["attributes"])
+    hits = 2 if legacy >= 0.8 else 1 if legacy >= 0.5 else 0
+    return {**fixture, "attributes": {**fixture["attributes"], **staging_attributes(hits)}}
+
+
+ADVERSARIAL_FIXTURES = [_promote(fixture) for fixture in ADVERSARIAL_FIXTURES]
 
 assert len(ADVERSARIAL_FIXTURES) == 20
 
