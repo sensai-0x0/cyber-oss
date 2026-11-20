@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/assets/banner.jpg" alt="Sentinel Hunter: a katana crossing a purple and green planet inside an ensō brush circle, with the calligraphy 剣魂 (sword spirit), 精神 (spirit) and 武 (martial)" width="100%">
+
 <pre>
  ####   ######  #    #  ######  ######  #    #  ######  #
 #       #       ##   #    ##      ##    ##   #  #       #
