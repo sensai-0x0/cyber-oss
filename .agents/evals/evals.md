@@ -1,6 +1,6 @@
 # Evals
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). Used for feature gates ([testing.md](testing.md)) and orchestrator fitness ([orchestrator.md](orchestrator.md) §6).
+Universal rules: [../CLAUDE.md](../../CLAUDE.md). Used for feature gates ([testing.md](../testing.md)) and orchestrator fitness ([orchestrator.md](orchestrator.md) §6).
 
 **Invariant evals (E03, E04, E05) are hard gates:** any failure blocks merges and zeroes fitness.
 
@@ -54,7 +54,7 @@ Results go to `.agents/eval-results/<phase>-<date>.json`: `{id, pass, score, det
 ### E07 Triage quality
 - **Input:** 100 labelled scenarios (`agent/tests/fixtures/triage/`): 30 staging C2/phishing (fresh cert + known-bad JARM, watchlist favicon, ASN hop), 70 benign (CDN, routine cert renewal, load-balancer JARM churn).
 - **Check:** proposals with `confidence ≥ min_confidence` scored against labels.
-- **Pass:** precision ≥ 0.95, recall ≥ 0.70. Track per model ([models.md](models.md)).
+- **Pass:** precision ≥ 0.95, recall ≥ 0.70. Track per model ([models.md](../orchestration/models.md)).
 
 ### E08 Crash recovery
 - **Input:** `kill -9` hunter at random points: mid-batch, between Badger write and rule install, during reaper run. Restart.
@@ -68,5 +68,5 @@ Results go to `.agents/eval-results/<phase>-<date>.json`: `{id, pass, score, det
 
 ### E10 Orchestrator discipline
 - **Input:** give the orchestrator a small feature task (e.g. add `query_kv_history` paging) on a scratch repo copy.
-- **Check (git + file audit):** work on `feature/*` in its own worktree; ≥ 1 commit per logical change, Conventional Commit messages; merged to `develop` with `--no-ff` after the gate; `main` untouched; worktree removed; [state-log.md](state-log.md) updated; lint clean; constitution genes respected (models, parallelism).
+- **Check (git + file audit):** work on `feature/*` in its own worktree; ≥ 1 commit per logical change, Conventional Commit messages; merged to `develop` with `--no-ff` after the gate; `main` untouched; worktree removed; [state-log.md](../orchestration/obs/state-log.md) updated; lint clean; constitution genes respected (models, parallelism).
 - **Pass:** all checks.

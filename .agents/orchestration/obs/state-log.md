@@ -1,6 +1,6 @@
 # State, Plans, Decisions and Errors
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). Read at session start; append at session end. Newest entries first. Dates as YYYY-MM-DD.
+Universal rules: [../CLAUDE.md](../../../CLAUDE.md). Read at session start; append at session end. Newest entries first. Dates as YYYY-MM-DD.
 
 ## Current state
 
@@ -11,7 +11,7 @@ Universal rules: [../CLAUDE.md](../CLAUDE.md). Read at session start; append at 
 | `pkg/probe` | Not started | |
 | `cmd/hunter` | Not started | |
 | `agent/` | Not started | |
-| Acceptance suites 1-3 | Not started | See [testing.md](testing.md) |
+| Acceptance suites 1-3 | Not started | See [testing.md](../../testing.md) |
 
 ## Plan (next steps)
 
@@ -25,10 +25,10 @@ Universal rules: [../CLAUDE.md](../CLAUDE.md). Read at session start; append at 
 
 | Date | Decision | Reason |
 |---|---|---|
-| 2026-11-20 | Architecture Outline is authoritative over Project Description | Outline is newer and fully specified. See [architecture.md](architecture.md#spec-divergence-resolved) |
+| 2026-11-20 | Architecture Outline is authoritative over Project Description | Outline is newer and fully specified. See [architecture.md](../architecture.md#spec-divergence-resolved) |
 | 2026-11-20 | Single `hunter` stdio binary, no `hunterd` daemon | Per outline; agent spawns it via MCP |
-| 2026-11-20 | All safety bounds enforced in Go only | LLM output is untrusted. See [invariants.md](invariants.md) I7 |
-| 2026-11-20 | Only Opus 5.5, Sonnet 5.5, Haiku 5.5 used | See [models.md](models.md) |
+| 2026-11-20 | All safety bounds enforced in Go only | LLM output is untrusted. See [invariants.md](../invariants.md) I7 |
+| 2026-11-20 | Only Opus 5.5, Sonnet 5.5, Haiku 5.5 used | See [models.md](../models.md) |
 
 ## Open questions
 

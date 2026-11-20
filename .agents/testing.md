@@ -1,6 +1,6 @@
 # Verification and Acceptance
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). A task is done only when its suite passes. Record failures in [state-log.md](state-log.md).
+Universal rules: [../CLAUDE.md](../CLAUDE.md). A task is done only when its suite passes. Record failures in [state-log.md](orchestration/obs/state-log.md).
 
 | # | Suite | Command | Must assert |
 |---|---|---|---|
