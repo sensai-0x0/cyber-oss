@@ -30,7 +30,7 @@ Universal rules in [../CLAUDE.md](../CLAUDE.md). Python rules in [python-langgra
 |---|---|---|
 | Firewall / DNS | `enforcerd.Backend` | Recording fake |
 | Process execution | `nft.Executor`, `rpz.Executor` | Fake that records `name` and `args` |
-| Authorization | `enforcerd.SignedBackend` wrapping a `Backend` | Real keys generated in-test |
+| Authorization | `enforcerd.SignedBackend` wrapping a `Backend`; `NewEnforcer` accepts nothing else | Real keys generated in-test; `SignedBackend.Now` pins the clock |
 | Clock | `Enforcer.now` field; `now time.Time` parameter on `operator.Approve` | Fixed time |
 | Probes | None. `TLSRunner` and `HTTPRunner` are concrete | Test `normalize*` functions on canned results |
 
@@ -80,7 +80,7 @@ When it is built, it must meet these rules:
 - Fail closed. `VerifyActionSignature` rejects a bad key, bad encoding, bad length, and a failed verify. A nil backend or missing key is an error, not a no-op.
 - TTL: `0 < ttl <= enforcerd.MaxTTL` (24 hours) at signing, approval, enforcement, and in the backend (I11). Use `ValidateTTL`; do not re-implement the comparison.
 - Broad actions need `Approved` and a named `ApprovedBy` (I14). Rejection returns an unsigned action.
-- Write `mitigate:rule:<id>` to Badger before calling `Backend.Apply` (I12) so a reaper can remove the rule after a crash. **Not implemented:** `Enforcer` keeps pending actions in an in-memory map and never touches `hunterd/store`. A restart loses every active rule's deadline. The reaper-on-startup of I13 does not exist either. Fix both in `enforcerd`; do not paper over with a comment.
+- Write `mitigate:rule:<id>` to Badger before calling `Backend.Apply` (I12) so a reaper can remove the rule after a crash. **Not implemented:** `Enforcer` keeps pending actions in an in-memory map and never touches `hunterd/store`. A restart loses every active rule's deadline (SHR-003). `Run` now reaps once at start, which covers I13 only within one process. Fix persistence in `enforcerd`; do not paper over with a comment.
 - Logs go to stderr (`log` defaults there; `operator` writes `os.Stderr`). `hunterd` stdout carries only NDJSON events. Never print keys, signatures, or target lists.
 - Private keys are written `0o600`.
 
@@ -90,7 +90,7 @@ When it is built, it must meet these rules:
 - `go test -race ./...` is mandatory. Shared state has one mutex, held across the whole state transition: `Enforcer.Enforce` holds `mu` across duplicate check, `Apply`, and insert so a duplicate ID cannot install two rules. Keep backend `Apply` bounded.
 - A `Range` is single-goroutine state. Share by handing over the cursor value (`Cursor()`/`Restore`), not the pointer.
 - BadgerDB allows one process per directory (I17). Only `hunterd` opens it. Never open a second `store.Open` on the same path in-process or from another service, and do not add a Go reader that bypasses `hunterd`.
-- `Expire` stops at the first revoke error and leaves the rest tracked. Keep that retry-safe behavior; never drop an action whose revoke failed.
+- `Expire` tries every due action, leaves each failure tracked and joins the errors, so one stuck revoke cannot hold back the others. `Run` logs a failed pass and keeps ticking (SHR-004). Never drop an action whose revoke failed.
 
 ## 7. State and persistence
 

@@ -10,10 +10,10 @@ import (
 
 func TestBroadActionRequiresApproval(t *testing.T) {
 	backend := &fakeBackend{}
-	e := NewEnforcer(backend)
-	_, err := e.Enforce(context.Background(), Action{
-		ID: "broad", Kind: KindNFTables, Target: "192.0.2.0/24", TTL: time.Minute, Broad: true,
-	})
+	e, private := signedEnforcer(t, backend)
+	_, err := e.Enforce(context.Background(), sign(t, private, Action{
+		ID: "broad", Kind: KindNFTables, Target: "192.0.2.0/24", TTL: time.Minute, Broad: true, CreatedAt: testNow,
+	}))
 	if !errors.Is(err, ErrApprovalRequired) {
 		t.Fatalf("error = %v, want ErrApprovalRequired", err)
 	}
@@ -24,10 +24,9 @@ func TestBroadActionRequiresApproval(t *testing.T) {
 
 func TestActionIsTTLBoundedAndExpires(t *testing.T) {
 	backend := &fakeBackend{}
-	e := NewEnforcer(backend)
-	now := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
-	e.now = func() time.Time { return now }
-	action := Action{ID: "temporary", Kind: KindRPZ, Target: "phish.example", TTL: time.Minute, Approved: true}
+	e, private := signedEnforcer(t, backend)
+	now := testNow
+	action := sign(t, private, narrow("temporary", now, time.Minute))
 	if _, err := e.Enforce(context.Background(), action); err != nil {
 		t.Fatal(err)
 	}
@@ -50,11 +49,11 @@ func TestActionIsTTLBoundedAndExpires(t *testing.T) {
 
 func TestRejectsMissingTTLAndDuplicateID(t *testing.T) {
 	backend := &fakeBackend{}
-	e := NewEnforcer(backend)
-	if _, err := e.Enforce(context.Background(), Action{ID: "no-ttl", Kind: KindRPZ, Target: "a.example"}); !errors.Is(err, ErrInvalidTTL) {
+	e, private := signedEnforcer(t, backend)
+	if _, err := e.Enforce(context.Background(), Action{ID: "no-ttl", Kind: KindRPZ, Target: "a.example", CreatedAt: testNow}); !errors.Is(err, ErrInvalidTTL) {
 		t.Fatalf("missing TTL error = %v", err)
 	}
-	action := Action{ID: "same", Kind: KindRPZ, Target: "a.example", TTL: time.Minute}
+	action := sign(t, private, narrow("same", testNow, time.Minute))
 	if _, err := e.Enforce(context.Background(), action); err != nil {
 		t.Fatal(err)
 	}
