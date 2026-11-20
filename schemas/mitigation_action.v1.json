@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/metacogna/sentinel-hunter/schemas/mitigation_action.v1.json",
+  "title": "Sentinel Hunter signed mitigation action v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "action_id", "kind", "target", "broad",
+    "approved", "ttl_seconds", "created_at", "expires_at", "signature"
+  ],
+  "properties": {
+    "schema_version": { "const": "v1" },
+    "action_id": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["nftables", "rpz", "headscale"] },
+    "target": { "type": "string", "minLength": 1 },
+    "broad": { "type": "boolean" },
+    "approved": { "type": "boolean" },
+    "approved_by": { "type": "string" },
+    "ttl_seconds": { "type": "integer", "minimum": 1, "maximum": 86400 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "signature": { "type": "string", "contentEncoding": "base64" }
+  }
+}

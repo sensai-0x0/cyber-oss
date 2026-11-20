@@ -1,0 +1,7 @@
+version: v1
+mitigation_confidence: 0.8
+broad_prefix_threshold: 24
+default_ttl_seconds: 900
+min_approved_ttl_seconds: 60
+max_approved_ttl_seconds: 86400
+max_refinement_cycles: 2

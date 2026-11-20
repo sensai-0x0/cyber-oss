@@ -1,0 +1,5 @@
+$ORIGIN rpz.lab.
+$TTL 60
+@ IN SOA ns.rpz.lab. hostmaster.rpz.lab. 1 60 60 60 60
+@ IN NS ns.rpz.lab.
+ns IN A 127.0.0.1

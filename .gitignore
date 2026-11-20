@@ -1,0 +1,16 @@
+.cache/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+/hunterd-bin
+/enforcerd-bin
+/operator-bin
+*.db/
+.coverage
+deploy/certs/generated/
+*.key
+*.csr
+*.srl
+checkpoints/

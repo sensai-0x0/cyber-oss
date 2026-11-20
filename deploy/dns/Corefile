@@ -1,0 +1,15 @@
+.:53 {
+  errors
+  log
+  hosts {
+    127.0.0.1 fake-c2.lab
+    127.0.0.1 phish.lab
+    fallthrough
+  }
+  forward . 127.0.0.1:2053
+  cache 30
+}
+
+rpz.lab:53 {
+  file /etc/coredns/rpz.lab
+}
