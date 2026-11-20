@@ -24,6 +24,13 @@ Three facts in the code shape the design:
 6. **Compatibility window (recommended).** The enforcer accepts v1 and v2 during a window, selected by an enforcer option `MinVersion` (planned), default v1. Any v1 approval carries no evidence binding, so the guarantee holds only after `MinVersion` is set to v2. The operator CLI issues v2 whenever `-ledger` is given and v1 otherwise, with a warning. The cut-over is 30 days after v2 issuance ships (resolved question 2). Rollback is turning off v2 issuance in the CLI. No enforcer rollback is needed.
 7. **No model output enters the signed bytes** beyond the ledger digest. `broad`, `kind`, TTL, scope, approval and expiry stay deterministic. SHR-001 (Go derives `broad`) landed before this ADR and is a hard prerequisite, already met.
 
+## Implementation notes
+
+- Python: `orchestrator/ledger.py` (`make_propose_node`, `export`), `orchestrator/action.py`, policy key `ledger_append_attempts`.
+- Go: `canonjson`, `enforcerd/breadth.go`, `enforcerd/verify_signature.go` (`canonicalV2`, `MinVersion`), `operator/evidence.go`, `operator/cmd/operator`.
+- Vectors: `schemas/mitigation_action.v2.golden.json`. Go and Python both assert it.
+- Decisions 1 to 6 are implemented. The `MinVersion` cut-over is not scheduled until the merge into `develop` (decision 6, resolved question 2).
+
 ## Consequences
 
 - A signature now proves the operator approved *this* evidence chain, not only this target. Editing or removing any earlier ledger record breaks every later digest.

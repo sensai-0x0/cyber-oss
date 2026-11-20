@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/metacogna/sentinel-hunter/schemas/mitigation_action.v2.json",
+  "title": "Sentinel Hunter signed mitigation action v2",
+  "description": "v1 plus the ledger record the operator reviewed. The signature covers evidence_digest and ledger_seq (ADR 0005).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "action_id", "kind", "target", "broad",
+    "approved", "ttl_seconds", "created_at", "expires_at",
+    "evidence_digest", "ledger_seq", "signature"
+  ],
+  "properties": {
+    "schema_version": { "const": "v2" },
+    "action_id": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["nftables", "rpz", "headscale"] },
+    "target": { "type": "string", "minLength": 1 },
+    "broad": { "type": "boolean" },
+    "approved": { "type": "boolean" },
+    "approved_by": { "type": "string" },
+    "ttl_seconds": { "type": "integer", "minimum": 1, "maximum": 86400 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "evidence_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "ledger_seq": { "type": "integer", "minimum": 0 },
+    "signature": { "type": "string", "contentEncoding": "base64" }
+  }
+}

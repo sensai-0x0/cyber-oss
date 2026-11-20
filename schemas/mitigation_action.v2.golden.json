@@ -1,0 +1,91 @@
+{
+ "note": "Shared by Go and Python tests. `actions[].canonical` are hand-written expected v2 signed bytes. `json_cases` pin the canonical JSON writer. `ledger` is a real chain produced by orchestrator/ledger.py.",
+ "actions": [
+  {
+   "name": "plain",
+   "action": {
+    "schema_version": "v2",
+    "action_id": "a1",
+    "kind": "nftables",
+    "target": "10.0.0.0/8",
+    "broad": true,
+    "approved": true,
+    "approved_by": "analyst",
+    "ttl_seconds": 600,
+    "created_at": "2026-01-02T03:04:05Z",
+    "expires_at": "2026-01-02T03:14:05Z",
+    "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ledger_seq": 7
+   },
+   "canonical": "{\"schema_version\":\"v2\",\"action_id\":\"a1\",\"kind\":\"nftables\",\"target\":\"10.0.0.0/8\",\"broad\":true,\"approved\":true,\"approved_by\":\"analyst\",\"ttl_seconds\":600,\"created_at\":\"2026-01-02T03:04:05Z\",\"expires_at\":\"2026-01-02T03:14:05Z\",\"evidence_digest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ledger_seq\":7}"
+  },
+  {
+   "name": "subsecond-time",
+   "action": {
+    "schema_version": "v2",
+    "action_id": "a2",
+    "kind": "rpz",
+    "target": "staging.example",
+    "broad": false,
+    "approved": true,
+    "approved_by": "analyst",
+    "ttl_seconds": 60,
+    "created_at": "2026-01-02T03:04:05.120Z",
+    "expires_at": "2026-01-02T03:05:05.120Z",
+    "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ledger_seq": 0
+   },
+   "canonical": "{\"schema_version\":\"v2\",\"action_id\":\"a2\",\"kind\":\"rpz\",\"target\":\"staging.example\",\"broad\":false,\"approved\":true,\"approved_by\":\"analyst\",\"ttl_seconds\":60,\"created_at\":\"2026-01-02T03:04:05.12Z\",\"expires_at\":\"2026-01-02T03:05:05.12Z\",\"evidence_digest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ledger_seq\":0}"
+  },
+  {
+   "name": "html-and-unicode-in-operator-name",
+   "action": {
+    "schema_version": "v2",
+    "action_id": "a3",
+    "kind": "nftables",
+    "target": "192.0.2.7",
+    "broad": false,
+    "approved": true,
+    "approved_by": "zoë <a&b>",
+    "ttl_seconds": 300,
+    "created_at": "2026-01-02T03:04:05Z",
+    "expires_at": "2026-01-02T03:09:05Z",
+    "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ledger_seq": 12
+   },
+   "canonical": "{\"schema_version\":\"v2\",\"action_id\":\"a3\",\"kind\":\"nftables\",\"target\":\"192.0.2.7\",\"broad\":false,\"approved\":true,\"approved_by\":\"zoë <a&b>\",\"ttl_seconds\":300,\"created_at\":\"2026-01-02T03:04:05Z\",\"expires_at\":\"2026-01-02T03:09:05Z\",\"evidence_digest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ledger_seq\":12}"
+  }
+ ],
+ "json_cases": [
+  {
+   "name": "sorted-keys-and-mixed",
+   "input": "{\"b\":1,\"a\":[1.5,0.8,\"x\",null,true]}",
+   "canonical": "{\"a\":[1.5,0.8,\"x\",null,true],\"b\":1}"
+  },
+  {
+   "name": "python-float-repr",
+   "input": "[1e-07,1E+16,1.0,0.0001,0.00001,1e15,1.5e300,-0.0,2.5E-3]",
+   "canonical": "[1e-07,1e+16,1.0,0.0001,1e-05,1000000000000000.0,1.5e+300,-0.0,0.0025]"
+  },
+  {
+   "name": "big-integers-keep-their-digits",
+   "input": "[0,-5,12345678901234567890]",
+   "canonical": "[0,-5,12345678901234567890]"
+  },
+  {
+   "name": "string-escapes",
+   "input": "\"q\\\"\\\\\\n\\t\\b\\f\\u0001\\u007f\\u2028\\u00e9/<&>\"",
+   "canonical": "\"q\\\"\\\\\\n\\t\\b\\f\\u0001 é/<&>\""
+  },
+  {
+   "name": "nested-key-order-and-unicode-keys",
+   "input": "{\"é\":1,\"z\":{\"b\":[],\"a\":{}},\"a\":\"\"}",
+   "canonical": "{\"a\":\"\",\"z\":{\"a\":{},\"b\":[]},\"é\":1}"
+  }
+ ],
+ "ledger": [
+  "{\"big\":1e+16,\"challengers\":{},\"event\":{\"common_name\":\"cn \\u0001 <x>é\",\"id\":\"e1\"},\"evidence\":{\"jarm\":\"OBSERVED\"},\"intel\":{\"confidence\":0.8,\"rationale\":[\"a\"]},\"policy\":{\"action\":\"mitigate\",\"action_id\":\"act-1\",\"approved\":false,\"broad\":false,\"target\":\"198.51.100.7\"},\"prev_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"record_hash\":\"fe2003193fa521a65ca5d8cfb8694b9a2c759b2c4735777e7613711f2c3088e9\",\"recorded_at\":\"2026-01-02T03:04:05+00:00\",\"scorer_id\":\"s\",\"seq\":0,\"stage\":\"propose\",\"tiny\":1e-07}",
+  "{\"challengers\":{},\"event\":{\"id\":\"e2\"},\"evidence\":{},\"intel\":{\"confidence\":0.8125,\"rationale\":[]},\"policy\":{\"action\":\"mitigate\",\"action_id\":\"act-2\",\"approved\":false,\"broad\":true,\"target\":\"10.0.0.0/8\"},\"prev_hash\":\"fe2003193fa521a65ca5d8cfb8694b9a2c759b2c4735777e7613711f2c3088e9\",\"record_hash\":\"25b0ffc559d6c45069555dbed20dfa143f80e71c6d949acb0fb09ce214e42e4a\",\"recorded_at\":\"2026-01-02T03:04:05+00:00\",\"scorer_id\":\"s\",\"seq\":1,\"stage\":\"propose\"}",
+  "{\"challengers\":{},\"event\":{\"id\":\"e2\"},\"policy\":{\"action\":\"mitigate\",\"action_id\":\"act-2\",\"approved\":true,\"broad\":true,\"target\":\"10.0.0.0/8\"},\"prev_hash\":\"25b0ffc559d6c45069555dbed20dfa143f80e71c6d949acb0fb09ce214e42e4a\",\"proposal_seq\":1,\"record_hash\":\"ab5677fd13271110e265be20436d7303d298275b1ece19e236a62265ade0acd4\",\"recorded_at\":\"2026-01-02T03:04:05+00:00\",\"scorer_id\":\"s\",\"seq\":2}"
+ ]
+}

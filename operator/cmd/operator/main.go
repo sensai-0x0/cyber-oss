@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -16,29 +17,32 @@ import (
 )
 
 type wireAction struct {
-	Version    string    `json:"schema_version"`
-	ID         string    `json:"action_id"`
-	Kind       string    `json:"kind"`
-	Target     string    `json:"target"`
-	Broad      bool      `json:"broad"`
-	Approved   bool      `json:"approved"`
-	ApprovedBy string    `json:"approved_by,omitempty"`
-	TTLSeconds int64     `json:"ttl_seconds"`
-	CreatedAt  time.Time `json:"created_at"`
-	ExpiresAt  time.Time `json:"expires_at"`
-	Signature  string    `json:"signature"`
+	Version string `json:"schema_version"`
+	ID      string `json:"action_id"`
+	Kind    string `json:"kind"`
+	Target  string `json:"target"`
+	Broad   bool   `json:"broad"`
+	// EvidenceDigest and LedgerSeq cite the ledger record shown to the operator (v2, ADR 0005).
+	EvidenceDigest string    `json:"evidence_digest,omitempty"`
+	LedgerSeq      *int64    `json:"ledger_seq,omitempty"`
+	Approved       bool      `json:"approved"`
+	ApprovedBy     string    `json:"approved_by,omitempty"`
+	TTLSeconds     int64     `json:"ttl_seconds"`
+	CreatedAt      time.Time `json:"created_at"`
+	ExpiresAt      time.Time `json:"expires_at"`
+	Signature      string    `json:"signature"`
 }
 
 func main() {
-	if err := run(os.Args[1:]); err != nil {
+	if err := run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(args []string) error {
+func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: operator keygen -out-prefix KEY | operator review -key PRIVATE -decision approve|reject -operator NAME -ttl 15m [-policy PATH] < action.json")
+		return errors.New("usage: operator keygen -out-prefix KEY | operator review -key PRIVATE -decision approve|reject -operator NAME -ttl 15m [-policy PATH] [-ledger EXPORT.ndjson] < action.json")
 	}
 	switch args[0] {
 	case "keygen":
@@ -64,6 +68,7 @@ func run(args []string) error {
 		decision := flags.String("decision", "reject", "approve or reject")
 		name := flags.String("operator", "", "operator identity")
 		ttl := flags.Duration("ttl", 15*time.Minute, "bounded mitigation TTL")
+		ledgerPath := flags.String("ledger", "", "ledger export (python -m orchestrator.ledger export); signs v2 bound to the cited record")
 		policyPath := flags.String("policy", "orchestrator/policy.yaml", "policy file holding the broad prefix thresholds")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
@@ -77,13 +82,13 @@ func run(args []string) error {
 			return err
 		}
 		var input wireAction
-		if err := json.NewDecoder(os.Stdin).Decode(&input); err != nil {
+		if err := json.NewDecoder(stdin).Decode(&input); err != nil {
 			return err
 		}
 		action := enforcerd.Action{ID: input.ID, Kind: enforcerd.Kind(input.Kind), Target: input.Target, Broad: input.Broad}
 		var output enforcerd.Action
 		if *decision == "approve" {
-			output, err = operatorcore.Approve(action, private, *name, *ttl, time.Now(), breadth)
+			output, err = approve(action, input, private, *name, *ttl, breadth, *ledgerPath, stderr)
 		} else if *decision == "reject" {
 			output, err = operatorcore.Reject(action, private, *name, time.Now())
 		} else {
@@ -92,10 +97,38 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
-		return json.NewEncoder(os.Stdout).Encode(toWire(output))
+		return json.NewEncoder(stdout).Encode(toWire(output))
 	default:
 		return errors.New("unknown operator command")
 	}
+}
+
+// approve signs v2 when a ledger export is given and the action cites a record in it, and v1 otherwise.
+// A citation without -ledger, or -ledger without a citation, is refused rather than dropped (ADR 0005).
+func approve(action enforcerd.Action, input wireAction, private []byte, name string, ttl time.Duration, breadth enforcerd.Breadth, ledgerPath string, stderr io.Writer) (enforcerd.Action, error) {
+	cited := input.LedgerSeq != nil || input.EvidenceDigest != ""
+	switch {
+	case ledgerPath == "" && cited:
+		return enforcerd.Action{}, errors.New("action cites a ledger record; pass -ledger so it can be verified")
+	case ledgerPath == "":
+		fmt.Fprintln(stderr, "warning: signing v1, which carries no evidence binding")
+		return operatorcore.Approve(action, private, name, ttl, time.Now(), breadth)
+	case input.LedgerSeq == nil || input.EvidenceDigest == "":
+		return enforcerd.Action{}, errors.New("-ledger needs ledger_seq and evidence_digest in the action")
+	}
+	file, err := os.Open(ledgerPath)
+	if err != nil {
+		return enforcerd.Action{}, fmt.Errorf("open ledger export: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+	evidence, err := operatorcore.VerifyEvidence(file, *input.LedgerSeq, input.EvidenceDigest, action)
+	if err != nil {
+		return enforcerd.Action{}, err
+	}
+	for _, line := range evidence.Lines {
+		fmt.Fprintln(stderr, line)
+	}
+	return operatorcore.ApproveWithEvidence(action, private, name, ttl, time.Now(), breadth, evidence)
 }
 
 func loadBreadth(path string) (enforcerd.Breadth, error) {
@@ -108,8 +141,12 @@ func loadBreadth(path string) (enforcerd.Breadth, error) {
 }
 
 func toWire(action enforcerd.Action) wireAction {
+	version, seq := "v1", (*int64)(nil)
+	if action.Version == "v2" {
+		version, seq = "v2", &action.LedgerSeq
+	}
 	return wireAction{
-		Version: "v1", ID: action.ID, Kind: string(action.Kind), Target: action.Target,
+		Version: version, EvidenceDigest: action.EvidenceDigest, LedgerSeq: seq, ID: action.ID, Kind: string(action.Kind), Target: action.Target,
 		Broad: action.Broad, Approved: action.Approved, ApprovedBy: action.ApprovedBy,
 		TTLSeconds: int64(action.TTL / time.Second), CreatedAt: action.CreatedAt,
 		ExpiresAt: action.ExpiresAt, Signature: action.Signature,

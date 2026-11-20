@@ -43,6 +43,12 @@ Run the `contract-steward` skill (`.agents/skills/contract-steward/SKILL.md`) be
 - [ ] `/security-review` runs on the diff. It is mandatory here, because the diff touches invariants.
 - [ ] 🔒 HUMAN CHECKPOINT: the trust-boundary change is signed off.
 
+## Result
+
+Built on `claude/bold-mccarthy-bsf51t` against ADR 0005 (see its implementation notes). The `propose` record is appended before review, so the interrupt carries `ledger_seq` and `evidence_digest`. A mitigation whose proposal cannot be recorded in 3 attempts becomes `observe`, which reverses Phase 2's fail-open rule for mitigations only. `operator review -ledger` verifies the chain through the cited record, shows the evidence and signs v2. `SignedBackend.MinVersion` is left at v1 until the cut-over. Both schemas and the shared golden vectors are tested in `orchestrator/tests/test_schemas.py` and the Go packages.
+
+Not done: `/security-review` (the skill would not load here, so only a manual review was done on the diff), the human trust-boundary sign-off, and scheduling the cut-over.
+
 ## Rollback
 
 The enforcer keeps accepting v1. Turning off v2 issuance in the operator CLI restores the previous behaviour, so no enforcer rollback is needed.
