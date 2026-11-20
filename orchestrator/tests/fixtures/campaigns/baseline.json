@@ -1,0 +1,65 @@
+{
+  "dataset_sha256": "f5f63824c977e7f3a5636519e310d990ae5746b0f18149bef6f8e155bed1791b",
+  "heuristic.badlist.v1": {
+    "campaign": {
+      "benign": 80,
+      "detected": 20,
+      "false_alarms": 51,
+      "precision": 0.28169014084507044,
+      "recall": 0.5,
+      "staging": 40
+    },
+    "event": {
+      "fn": 179,
+      "fp": 76,
+      "precision": 0.4198473282442748,
+      "recall": 0.23504273504273504,
+      "tn": 332,
+      "tp": 55
+    },
+    "false_block_cost": {
+      "benign_targets_proposed": 70,
+      "broad": 2,
+      "narrow": 68
+    },
+    "lead_time_hours": {
+      "max": 78.35,
+      "median": 37.40833333333333,
+      "min": 9.466666666666667,
+      "n": 20,
+      "share_before_go_live": 1.0
+    },
+    "threshold": 0.8
+  },
+  "legacy.flags": {
+    "campaign": {
+      "benign": 80,
+      "detected": 16,
+      "false_alarms": 14,
+      "precision": 0.5333333333333333,
+      "recall": 0.4,
+      "staging": 40
+    },
+    "event": {
+      "fn": 213,
+      "fp": 15,
+      "precision": 0.5833333333333334,
+      "recall": 0.08974358974358974,
+      "tn": 393,
+      "tp": 21
+    },
+    "false_block_cost": {
+      "benign_targets_proposed": 14,
+      "broad": 1,
+      "narrow": 13
+    },
+    "lead_time_hours": {
+      "max": 76.83333333333333,
+      "median": 21.958333333333332,
+      "min": -6.316666666666666,
+      "n": 16,
+      "share_before_go_live": 0.9375
+    },
+    "threshold": 0.8
+  }
+}
