@@ -16,6 +16,8 @@
 
 **See the staging. Own the response. Leave nothing permanent.**
 
+**Status:** authoritative · **Derived from:** `spec/`, the tree · **Updated:** 2026-11-21
+
 [![Status](https://img.shields.io/badge/STATUS-ENGINEERING_SCAFFOLD-7c2d12?style=flat-square&labelColor=111111)](#-what-is-real-today)
 [![Authorization](https://img.shields.io/badge/AUTHORIZATION-EXPLICIT_ONLY-a16207?style=flat-square&labelColor=111111)](#-safety-boundary)
 [![Response](https://img.shields.io/badge/RESPONSE-NAMED_%2B_SIGNED-1d4ed8?style=flat-square&labelColor=111111)](#-the-invariants)

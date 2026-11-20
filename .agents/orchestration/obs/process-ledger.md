@@ -1,5 +1,7 @@
 # Process Ledger
 
+**Status:** active · **Derived from:** conductor REFLECT stage, [../../evals/orchestrator.md](../../evals/orchestrator.md) §6 · **Updated:** 2026-11-21
+
 Universal rules: [../../../CLAUDE.md](../../../CLAUDE.md). Written by the `conductor` skill at stage
 REFLECT; read at stage ORIENT. Newest entries first. Dates as YYYY-MM-DD.
 
