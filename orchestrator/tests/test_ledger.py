@@ -70,7 +70,10 @@ def test_golden_chain_pins_the_record_format(tmp_path):
 def test_intact_chain_verifies(tmp_path):
     ledger = fixed_ledger(tmp_path / "l.sqlite")
     fill(ledger, 6)
-    assert len(ledger.records()) >= 6  # a mitigation adds a proposal and a decision record
+    # One decision record per run, plus one proposal per run that reached the approval gate.
+    proposals = sum(1 for _, _, body in ledger.records() if '"stage":"propose"' in body)
+    assert proposals > 0
+    assert len(ledger.records()) == 6 + proposals
     assert verify_chain(ledger) is None
 
 
@@ -151,9 +154,7 @@ def test_a_failing_ledger_write_leaves_an_observe_result_identical():
 def test_a_failing_ledger_write_stops_a_mitigation_proposal():
     """ADR 0005 reverses Phase 2 for mitigations: no evidence record, nothing to sign."""
     value = run_event(**staging_attributes())
-    result, payload = outcome(
-        build_graph(checkpointer=MemorySaver(), ledger=BrokenLedger()), value
-    )
+    result, payload = outcome(build_graph(checkpointer=MemorySaver(), ledger=BrokenLedger()), value)
     assert payload is None and result["policy"]["action"] == "observe"
 
 

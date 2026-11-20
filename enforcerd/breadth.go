@@ -20,20 +20,25 @@ var hostname = regexp.MustCompile(`^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[
 // The values come from orchestrator/policy.yaml via ParseBreadth, never from a request.
 type Breadth struct{ V4, V6 int }
 
-// ParseBreadth reads broad_prefix_threshold and broad_prefix_threshold_v6 from policy.yaml,
-// so Go and Python share one source. It fails closed when either key is missing or invalid.
+// ParseBreadth reads the top-level broad_prefix_threshold and broad_prefix_threshold_v6 keys
+// from policy.yaml, so Go and Python share one source. Indented (nested) keys are not the
+// policy's and are skipped; an inline # comment is allowed. It fails closed when either key
+// is missing, repeated or invalid.
 func ParseBreadth(r io.Reader) (Breadth, error) {
 	var b Breadth
 	seen := map[string]bool{}
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		key, value, ok := strings.Cut(scanner.Text(), ":")
-		if !ok {
-			continue
+		line, _, _ := strings.Cut(scanner.Text(), "#")
+		key, value, ok := strings.Cut(line, ":")
+		if !ok || key != strings.TrimSpace(key) {
+			continue // not a key, or nested under another key
 		}
-		key = strings.TrimSpace(key)
 		if key != "broad_prefix_threshold" && key != "broad_prefix_threshold_v6" {
 			continue
+		}
+		if seen[key] {
+			return Breadth{}, fmt.Errorf("repeated %s in policy", key)
 		}
 		n, err := strconv.Atoi(strings.TrimSpace(value))
 		limit := 32

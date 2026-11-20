@@ -137,3 +137,19 @@ func TestRepositoryPolicyYieldsBreadth(t *testing.T) {
 		t.Fatalf("ParseBreadth(policy.yaml) = %+v, %v", got, err)
 	}
 }
+
+// Only top-level keys count, so Go reads the same thresholds Python's yaml.safe_load does.
+func TestParseBreadthMatchesYAMLForNestedKeysCommentsAndDuplicates(t *testing.T) {
+	nested := "version: v1\nbroad_prefix_threshold: 24\nbroad_prefix_threshold_v6: 64\noverrides:\n  broad_prefix_threshold: 8\n"
+	if got, err := ParseBreadth(strings.NewReader(nested)); err != nil || got != (Breadth{V4: 24, V6: 64}) {
+		t.Errorf("nested key: ParseBreadth = %+v, %v", got, err)
+	}
+	commented := "broad_prefix_threshold: 24  # ops\nbroad_prefix_threshold_v6: 64 # ops\n# broad_prefix_threshold: 8\n"
+	if got, err := ParseBreadth(strings.NewReader(commented)); err != nil || got != (Breadth{V4: 24, V6: 64}) {
+		t.Errorf("comments: ParseBreadth = %+v, %v", got, err)
+	}
+	duplicate := "broad_prefix_threshold: 24\nbroad_prefix_threshold_v6: 64\nbroad_prefix_threshold: 8\n"
+	if _, err := ParseBreadth(strings.NewReader(duplicate)); err == nil {
+		t.Error("duplicate key accepted")
+	}
+}

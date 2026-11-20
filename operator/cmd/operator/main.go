@@ -73,10 +73,6 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}
-		breadth, err := loadBreadth(*policyPath)
-		if err != nil {
-			return err
-		}
 		private, err := os.ReadFile(*keyPath)
 		if err != nil {
 			return err
@@ -88,6 +84,11 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 		action := enforcerd.Action{ID: input.ID, Kind: enforcerd.Kind(input.Kind), Target: input.Target, Broad: input.Broad}
 		var output enforcerd.Action
 		if *decision == "approve" {
+			// Only approval signs a breadth claim, so only approval needs the thresholds.
+			breadth, loadErr := loadBreadth(*policyPath)
+			if loadErr != nil {
+				return loadErr
+			}
 			output, err = approve(action, input, private, *name, *ttl, breadth, *ledgerPath, stderr)
 		} else if *decision == "reject" {
 			output, err = operatorcore.Reject(action, private, *name, time.Now())

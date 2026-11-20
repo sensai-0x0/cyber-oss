@@ -132,11 +132,7 @@ def build_record_fields(state: GraphState) -> dict[str, Any]:
         "policy": state["policy"],
         "policy_sha256": hashlib.sha256(POLICY_FILE.read_bytes()).hexdigest(),
         "scorer_id": SCORER_ID,
-        **(
-            {"proposal_seq": state["proposal"]["ledger_seq"]}
-            if state.get("proposal")
-            else {}
-        ),
+        **({"proposal_seq": state["proposal"]["ledger_seq"]} if state.get("proposal") else {}),
     }
 
 
@@ -171,9 +167,11 @@ def make_propose_node(
     """
 
     def propose(state: GraphState) -> dict[str, Any]:
+        # Clear any proposal left in the thread's state by an earlier run, so a later
+        # decision record never cites evidence this run did not produce.
         policy = state["policy"]
         if policy["action"] != "mitigate" or policy["approved"]:
-            return {}
+            return {"proposal": None}
         attempts = load_policy()["ledger_append_attempts"]
         for attempt in range(1, attempts + 1):
             try:
@@ -188,13 +186,14 @@ def make_propose_node(
                 }
             }
         return {
+            "proposal": None,
             "policy": {
                 **policy,
                 "action": "observe",
                 "approved": False,
                 "ttl_seconds": 0,
                 "reason": "ledger unavailable; no evidence record for review",
-            }
+            },
         }
 
     return propose

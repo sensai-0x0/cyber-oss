@@ -68,19 +68,19 @@ func digestOf(t *testing.T, line string) string {
 
 func TestReviewWithLedgerSignsV2AndShowsTheEvidence(t *testing.T) {
 	f := setup(t)
-	input := `{"action_id":"act-2","kind":"nftables","target":"10.0.0.0/8","broad":true,"ledger_seq":1,"evidence_digest":"` + digestOf(t, f.lines[1]) + `"}`
+	input := `{"action_id":"act-2","kind":"nftables","target":"10.0.0.0/8","broad":true,"ledger_seq":2,"evidence_digest":"` + digestOf(t, f.lines[2]) + `"}`
 	out, shown, err := review(t, f, input, "-ledger", f.ledger)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out["schema_version"] != "v2" || out["ledger_seq"] != float64(1) || out["evidence_digest"] != digestOf(t, f.lines[1]) {
+	if out["schema_version"] != "v2" || out["ledger_seq"] != float64(2) || out["evidence_digest"] != digestOf(t, f.lines[2]) {
 		t.Fatalf("output = %v", out)
 	}
-	if !strings.Contains(shown, "10.0.0.0/8") || !strings.Contains(shown, "ledger record 1") {
+	if !strings.Contains(shown, "10.0.0.0/8") || !strings.Contains(shown, "ledger record 2") {
 		t.Fatalf("operator was not shown the evidence: %q", shown)
 	}
 	action := enforcerd.Action{Version: "v2", ID: "act-2", Kind: enforcerd.KindNFTables, Target: "10.0.0.0/8", Broad: true, Approved: true,
-		ApprovedBy: "analyst", EvidenceDigest: out["evidence_digest"].(string), LedgerSeq: 1}
+		ApprovedBy: "analyst", EvidenceDigest: out["evidence_digest"].(string), LedgerSeq: 2}
 	action.TTL = 15 * 60 * 1e9
 	action.CreatedAt, _ = parseTime(out["created_at"].(string))
 	action.ExpiresAt, _ = parseTime(out["expires_at"].(string))
@@ -92,12 +92,12 @@ func TestReviewWithLedgerSignsV2AndShowsTheEvidence(t *testing.T) {
 
 func TestReviewRefusesWhenTheLedgerWasTampered(t *testing.T) {
 	f := setup(t)
-	cited := digestOf(t, f.lines[1])
+	cited := digestOf(t, f.lines[2])
 	tampered := strings.Replace(strings.Join(f.lines, "\n"), `"scorer_id":"s"`, `"scorer_id":"x"`, 1)
 	if err := os.WriteFile(f.ledger, []byte(tampered), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	input := `{"action_id":"act-2","kind":"nftables","target":"10.0.0.0/8","broad":true,"ledger_seq":1,"evidence_digest":"` + cited + `"}`
+	input := `{"action_id":"act-2","kind":"nftables","target":"10.0.0.0/8","broad":true,"ledger_seq":2,"evidence_digest":"` + cited + `"}`
 	if _, _, err := review(t, f, input, "-ledger", f.ledger); err == nil {
 		t.Fatal("signed over a tampered ledger")
 	}
@@ -105,7 +105,7 @@ func TestReviewRefusesWhenTheLedgerWasTampered(t *testing.T) {
 
 func TestReviewNeverDropsCitedEvidenceSilently(t *testing.T) {
 	f := setup(t)
-	withCitation := `{"action_id":"act-2","kind":"nftables","target":"10.0.0.0/8","broad":true,"ledger_seq":1,"evidence_digest":"` + digestOf(t, f.lines[1]) + `"}`
+	withCitation := `{"action_id":"act-2","kind":"nftables","target":"10.0.0.0/8","broad":true,"ledger_seq":2,"evidence_digest":"` + digestOf(t, f.lines[2]) + `"}`
 	if _, _, err := review(t, f, withCitation); err == nil {
 		t.Fatal("a cited action was signed as v1 without -ledger")
 	}
@@ -124,3 +124,14 @@ func TestReviewWithoutLedgerStaysV1AndWarns(t *testing.T) {
 }
 
 func parseTime(s string) (time.Time, error) { return time.Parse(time.RFC3339Nano, s) }
+
+// Rejecting needs no breadth thresholds, so it works without a policy file and from any directory.
+func TestReviewRejectNeedsNoPolicyFile(t *testing.T) {
+	f := setup(t)
+	args := []string{"review", "-key", f.key, "-decision", "reject", "-operator", "analyst", "-policy", filepath.Join(f.dir, "missing.yaml")}
+	var stdout, stderr bytes.Buffer
+	input := `{"action_id":"act-2","kind":"nftables","target":"10.0.0.0/8","broad":true}`
+	if err := run(args, strings.NewReader(input), &stdout, &stderr); err != nil {
+		t.Fatalf("reject failed: %v", err)
+	}
+}

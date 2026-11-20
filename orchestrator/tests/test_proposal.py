@@ -99,8 +99,44 @@ def test_export_emits_verifiable_ndjson(tmp_path):
     start(build_graph(checkpointer=MemorySaver(), ledger=ledger))
     done = subprocess.run(
         [sys.executable, "-m", "orchestrator.ledger", "export", str(tmp_path / "ledger.db")],
-        capture_output=True, text=True, cwd=ROOT, check=True,
+        capture_output=True,
+        text=True,
+        cwd=ROOT,
+        check=True,
     )
     lines = done.stdout.splitlines()
     assert [json.loads(line)["seq"] for line in lines] == [0]
     assert lines[0] == canonical_json(json.loads(lines[0])).decode()
+
+
+class Recording:
+    def __init__(self, fail: bool = False):
+        self.fail, self.calls = fail, 0
+
+    def append(self, fields):
+        self.calls += 1
+        if self.fail:
+            raise OSError("disk full")
+        return {"seq": 5, "record_hash": "b" * 64}
+
+
+STALE = {"ledger_seq": 0, "evidence_digest": "a" * 64}
+
+
+def test_a_run_with_nothing_to_propose_clears_an_earlier_proposal():
+    from orchestrator.ledger import make_propose_node
+
+    observe = {"action": "observe", "approved": False, "ttl_seconds": 0}
+    propose = make_propose_node(Recording())
+    assert propose({"policy": observe, "proposal": STALE}) == {"proposal": None}
+
+
+def test_a_degraded_proposal_clears_an_earlier_proposal(tmp_path):
+    from orchestrator.ledger import make_propose_node
+
+    state = {
+        "policy": {"action": "mitigate", "approved": False, "ttl_seconds": 600},
+        "proposal": STALE,
+    }
+    result = make_propose_node(Recording(fail=True))(state)
+    assert result["proposal"] is None and result["policy"]["action"] == "observe"

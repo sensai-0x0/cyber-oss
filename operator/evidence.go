@@ -40,11 +40,14 @@ type ledgerRecord struct {
 	Hash     string `json:"record_hash"`
 	Stage    string `json:"stage"`
 	Scorer   string `json:"scorer_id"`
-	Intel    any    `json:"intel"`
-	Evidence any    `json:"evidence"`
-	Policy   struct {
+	// ProposalSeq is set on a decision record; it names the proposal that decision closed.
+	ProposalSeq *int64 `json:"proposal_seq"`
+	Intel       any    `json:"intel"`
+	Evidence    any    `json:"evidence"`
+	Policy      struct {
 		Action   string `json:"action"`
 		ActionID string `json:"action_id"`
+		Kind     string `json:"kind"`
 		Target   string `json:"target"`
 		Broad    bool   `json:"broad"`
 	} `json:"policy"`
@@ -54,10 +57,10 @@ func mismatch(format string, args ...any) error {
 	return fmt.Errorf("%w: %s", ErrEvidenceMismatch, fmt.Sprintf(format, args...))
 }
 
-// VerifyEvidence recomputes the hash chain from record 0 through seq in a ledger export
-// (one canonical record per line, from `python -m orchestrator.ledger export`) and checks
-// that record seq is a mitigation proposal for exactly this action, with the cited digest.
-// Any break fails closed. It reads no further than seq.
+// VerifyEvidence recomputes the hash chain over a whole ledger export (one canonical record
+// per line, from `python -m orchestrator.ledger export`) and checks that record seq is a
+// mitigation proposal for exactly this action, with the cited digest, and that no later record
+// has already decided it. Any break anywhere in the export fails closed.
 func VerifyEvidence(export io.Reader, seq int64, digest string, action enforcerd.Action) (Evidence, error) {
 	if seq < 0 {
 		return Evidence{}, mismatch("negative sequence")
@@ -65,6 +68,7 @@ func VerifyEvidence(export io.Reader, seq int64, digest string, action enforcerd
 	scanner := bufio.NewScanner(export)
 	scanner.Buffer(make([]byte, 0, 64*1024), maxRecordSize)
 	previous := genesis
+	var cited *Evidence
 	for index := int64(0); scanner.Scan(); index++ {
 		line := scanner.Bytes()
 		canonical, err := canonjson.Canonicalize(line)
@@ -80,15 +84,24 @@ func VerifyEvidence(export io.Reader, seq int64, digest string, action enforcerd
 			return Evidence{}, mismatch("chain breaks at record %d", index)
 		}
 		previous = record.Hash
-		if index < seq {
-			continue
+		switch {
+		case index == seq:
+			evidence, err := citedEvidence(record, seq, digest, action)
+			if err != nil {
+				return Evidence{}, err
+			}
+			cited = &evidence
+		case index > seq && record.ProposalSeq != nil && *record.ProposalSeq == seq:
+			return Evidence{}, mismatch("record %d already decided proposal %d", index, seq)
 		}
-		return citedEvidence(record, seq, digest, action)
 	}
 	if err := scanner.Err(); err != nil {
 		return Evidence{}, mismatch("read export: %v", err)
 	}
-	return Evidence{}, mismatch("export ends before record %d", seq)
+	if cited == nil {
+		return Evidence{}, mismatch("export ends before record %d", seq)
+	}
+	return *cited, nil
 }
 
 func citedEvidence(record ledgerRecord, seq int64, digest string, action enforcerd.Action) (Evidence, error) {
@@ -99,6 +112,8 @@ func citedEvidence(record ledgerRecord, seq int64, digest string, action enforce
 		return Evidence{}, mismatch("record %d is not a mitigation proposal", seq)
 	case record.Policy.ActionID != action.ID || record.Policy.Target != action.Target:
 		return Evidence{}, mismatch("record %d describes a different action or target", seq)
+	case record.Policy.Kind != string(action.Kind) || record.Policy.Broad != action.Broad:
+		return Evidence{}, mismatch("record %d proposed a different kind or breadth", seq)
 	}
 	return Evidence{Seq: seq, Digest: digest, Lines: evidenceLines(record)}, nil
 }
@@ -106,7 +121,8 @@ func citedEvidence(record ledgerRecord, seq int64, digest string, action enforce
 func evidenceLines(record ledgerRecord) []string {
 	lines := []string{
 		fmt.Sprintf("ledger record %d  digest %s", record.Seq, record.Hash),
-		fmt.Sprintf("proposal: %s %s (broad=%t) scored by %s", record.Policy.Action, record.Policy.Target, record.Policy.Broad, record.Scorer),
+		// Target, action and scorer come from the event and the record, so they are neutralised too.
+		neutralise(fmt.Sprintf("proposal: %s %s %s (broad=%t) scored by %s", record.Policy.Action, record.Policy.Kind, record.Policy.Target, record.Policy.Broad, record.Scorer)),
 	}
 	for _, section := range []struct {
 		name  string
