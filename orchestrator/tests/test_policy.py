@@ -129,6 +129,13 @@ def test_classify_target_table(target, kind, prefix, broad, normalised):
         "::ffff:0:0/80",
         "fe80::1%eth0",
         "evil\x1b]52;c;aGk=\x07.example",
+        # Python's $ matches before a trailing newline; Go's does not.
+        "example.com\n:80",
+        # A host:port whose port is not a port is not a host:port.
+        "1.2.3.4:abc",
+        "10.0.0.1:99999",
+        "10.0.0.1:0",
+        "[2001:db8::1]:x",
     ],
 )
 def test_classify_target_rejects_what_it_cannot_parse(garbage):

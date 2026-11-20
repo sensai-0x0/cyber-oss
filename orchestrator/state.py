@@ -49,5 +49,5 @@ class GraphState(TypedDict, total=False):
     cluster: Cluster
     intel: IntelScore
     policy: Policy
-    proposal: dict[str, Any]
+    proposal: dict[str, Any] | None
     cycles: int

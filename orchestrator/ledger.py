@@ -175,7 +175,9 @@ def make_propose_node(
         attempts = load_policy()["ledger_append_attempts"]
         for attempt in range(1, attempts + 1):
             try:
-                record = writer.append({**build_record_fields(state), "stage": "propose"})
+                # A proposal is not a decision, so it never cites an earlier proposal.
+                fields = build_record_fields({**state, "proposal": None})
+                record = writer.append({**fields, "stage": "propose"})
             except Exception:
                 LOGGER.exception("proposal write failed (attempt %d of %d)", attempt, attempts)
                 continue

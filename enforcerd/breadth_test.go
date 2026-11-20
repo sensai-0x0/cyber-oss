@@ -153,3 +153,10 @@ func TestParseBreadthMatchesYAMLForNestedKeysCommentsAndDuplicates(t *testing.T)
 		t.Error("duplicate key accepted")
 	}
 }
+
+// YAML starts a comment only at a # preceded by whitespace, so "24#x" is a string, not 24.
+func TestParseBreadthRefusesAHashWithoutSpaceBeforeIt(t *testing.T) {
+	if _, err := ParseBreadth(strings.NewReader("broad_prefix_threshold: 24#x\nbroad_prefix_threshold_v6: 64\n")); err == nil {
+		t.Fatal("read 24#x as 24")
+	}
+}

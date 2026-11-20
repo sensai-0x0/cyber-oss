@@ -243,3 +243,15 @@ func TestEvidenceProposalLineNeutralisesTerminalControls(t *testing.T) {
 		}
 	}
 }
+
+// Only a decision record closes a proposal; a later proposal that carries proposal_seq does not.
+func TestVerifyEvidenceIgnoresProposalSeqOnALaterProposal(t *testing.T) {
+	action := enforcerd.Action{ID: "act-5", Kind: enforcerd.KindNFTables, Target: "198.51.100.5"}
+	policy := map[string]any{"action": "mitigate", "action_id": "act-5", "kind": "nftables", "target": "198.51.100.5", "broad": false}
+	first, firstHash := realLine(t, 0, genesis, map[string]any{"stage": "propose", "scorer_id": "s", "policy": policy})
+	second, _ := realLine(t, 1, firstHash, map[string]any{"stage": "propose", "scorer_id": "s", "proposal_seq": 0,
+		"policy": map[string]any{"action": "mitigate", "action_id": "act-6", "kind": "nftables", "target": "198.51.100.6", "broad": false}})
+	if _, err := VerifyEvidence(strings.NewReader(first+"\n"+second), 0, firstHash, action); err != nil {
+		t.Fatalf("a later proposal was treated as a decision: %v", err)
+	}
+}

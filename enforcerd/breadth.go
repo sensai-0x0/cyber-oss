@@ -22,14 +22,15 @@ type Breadth struct{ V4, V6 int }
 
 // ParseBreadth reads the top-level broad_prefix_threshold and broad_prefix_threshold_v6 keys
 // from policy.yaml, so Go and Python share one source. Indented (nested) keys are not the
-// policy's and are skipped; an inline # comment is allowed. It fails closed when either key
-// is missing, repeated or invalid.
+// policy's and are skipped; a # comment counts only at line start or after whitespace, as in
+// YAML. It is a line reader, not YAML: where it cannot be sure it agrees with yaml.safe_load
+// (a repeated key, a quoted key) it fails closed, so an approval stops rather than diverges.
 func ParseBreadth(r io.Reader) (Breadth, error) {
 	var b Breadth
 	seen := map[string]bool{}
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		line, _, _ := strings.Cut(scanner.Text(), "#")
+		line := stripComment(scanner.Text())
 		key, value, ok := strings.Cut(line, ":")
 		if !ok || key != strings.TrimSpace(key) {
 			continue // not a key, or nested under another key
@@ -62,6 +63,16 @@ func ParseBreadth(r io.Reader) (Breadth, error) {
 		return Breadth{}, errors.New("policy lacks broad prefix thresholds")
 	}
 	return b, nil
+}
+
+// stripComment drops a YAML comment: a # at the start of the line or after a space or tab.
+func stripComment(line string) string {
+	for i, r := range line {
+		if r == '#' && (i == 0 || line[i-1] == ' ' || line[i-1] == '\t') {
+			return line[:i]
+		}
+	}
+	return line
 }
 
 func (b Breadth) valid() bool { return b.V4 >= 1 && b.V4 < 32 && b.V6 >= 1 && b.V6 < 128 }

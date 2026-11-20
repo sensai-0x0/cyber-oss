@@ -91,7 +91,7 @@ func VerifyEvidence(export io.Reader, seq int64, digest string, action enforcerd
 				return Evidence{}, err
 			}
 			cited = &evidence
-		case index > seq && record.ProposalSeq != nil && *record.ProposalSeq == seq:
+		case index > seq && record.Stage != "propose" && record.ProposalSeq != nil && *record.ProposalSeq == seq:
 			return Evidence{}, mismatch("record %d already decided proposal %d", index, seq)
 		}
 	}

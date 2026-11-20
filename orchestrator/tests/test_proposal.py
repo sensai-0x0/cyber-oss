@@ -140,3 +140,35 @@ def test_a_degraded_proposal_clears_an_earlier_proposal(tmp_path):
     }
     result = make_propose_node(Recording(fail=True))(state)
     assert result["proposal"] is None and result["policy"]["action"] == "observe"
+
+
+def test_a_new_proposal_record_never_cites_an_earlier_proposal():
+    from datetime import UTC, datetime
+
+    from orchestrator.ledger import make_propose_node
+    from orchestrator.state import DeltaEvent
+
+    class Capture:
+        def append(self, fields):
+            self.fields = fields
+            return {"seq": 6, "record_hash": "c" * 64}
+
+    event = DeltaEvent(
+        schema_version="v1",
+        event_id="e-2",
+        kind="novel",
+        source="tlsx",
+        target="198.51.100.7",
+        observed_at=datetime.now(UTC),
+        fingerprint="a" * 64,
+        attributes={},
+    ).model_dump(mode="json")
+    state = {
+        "event": event,
+        "intel": {"confidence": 0.9, "rationale": []},
+        "policy": {"action": "mitigate", "approved": False, "ttl_seconds": 600},
+        "proposal": STALE,
+    }
+    writer = Capture()
+    make_propose_node(writer)(state)
+    assert "proposal_seq" not in writer.fields

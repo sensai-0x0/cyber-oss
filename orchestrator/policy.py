@@ -31,6 +31,10 @@ _HOSTNAME = re.compile(
 )
 
 
+def _is_port(text: str) -> bool:
+    return text.isascii() and text.isdigit() and 0 < int(text) <= 65535
+
+
 def classify_target(target: str, config: dict[str, Any] | None = None) -> dict[str, Any] | None:
     """Derive kind, prefix length, breadth and the bare target from the target alone.
 
@@ -45,9 +49,15 @@ def classify_target(target: str, config: dict[str, Any] | None = None) -> dict[s
     if "://" in text:
         text = urlsplit(text).hostname or ""
     elif "/" not in text and text.count(":") == 1:
-        text = text.rsplit(":", 1)[0]  # host:port
+        text, port = text.rsplit(":", 1)  # host:port
+        if not _is_port(port):
+            return None
     elif text.startswith("[") and "]" in text:
-        text = text[1 : text.index("]")]  # [v6]:port
+        close = text.index("]")
+        rest = text[close + 1 :]  # [v6] or [v6]:port
+        if rest and not (rest.startswith(":") and _is_port(rest[1:])):
+            return None
+        text = text[1:close]
     if not text:
         return None
     try:
@@ -75,7 +85,7 @@ def classify_target(target: str, config: dict[str, Any] | None = None) -> dict[s
         bare = str(network) if "/" in text else str(network.network_address)
         return {"kind": "nftables", "prefix_len": network.prefixlen, "broad": broad, "target": bare}
     name = text.lower()
-    if _HOSTNAME.match(name):
+    if _HOSTNAME.fullmatch(name):  # fullmatch: Python's $ would allow a trailing newline
         return {"kind": "rpz", "prefix_len": None, "broad": False, "target": name}
     return None
 
