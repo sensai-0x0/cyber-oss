@@ -132,6 +132,11 @@ def build_record_fields(state: GraphState) -> dict[str, Any]:
         "policy": state["policy"],
         "policy_sha256": hashlib.sha256(POLICY_FILE.read_bytes()).hexdigest(),
         "scorer_id": SCORER_ID,
+        **(
+            {"proposal_seq": state["proposal"]["ledger_seq"]}
+            if state.get("proposal")
+            else {}
+        ),
     }
 
 
@@ -153,6 +158,46 @@ def run_challengers(state: GraphState, challengers: Sequence[Challenger]) -> dic
             LOGGER.exception("challenger %s failed", challenger.name)
             results[challenger.name] = {"error": f"{type(error).__name__}: {error}"}
     return results
+
+
+def make_propose_node(
+    writer: LedgerWriter,
+) -> Callable[[GraphState], dict[str, Any]]:
+    """Record a mitigation proposal before an operator sees it (ADR 0005).
+
+    Unlike the decision record, a failed write here is fatal to the proposal: after
+    `ledger_append_attempts` tries the decision becomes `observe`, so nothing is
+    left for an operator to sign without evidence behind it.
+    """
+
+    def propose(state: GraphState) -> dict[str, Any]:
+        policy = state["policy"]
+        if policy["action"] != "mitigate" or policy["approved"]:
+            return {}
+        attempts = load_policy()["ledger_append_attempts"]
+        for attempt in range(1, attempts + 1):
+            try:
+                record = writer.append({**build_record_fields(state), "stage": "propose"})
+            except Exception:
+                LOGGER.exception("proposal write failed (attempt %d of %d)", attempt, attempts)
+                continue
+            return {
+                "proposal": {
+                    "ledger_seq": record["seq"],
+                    "evidence_digest": record["record_hash"],
+                }
+            }
+        return {
+            "policy": {
+                **policy,
+                "action": "observe",
+                "approved": False,
+                "ttl_seconds": 0,
+                "reason": "ledger unavailable; no evidence record for review",
+            }
+        }
+
+    return propose
 
 
 def make_record_node(
@@ -179,10 +224,22 @@ def make_record_node(
     return record
 
 
+def export_ndjson(ledger: Ledger) -> list[str]:
+    """One canonical record per line, in sequence order, for read-only tools."""
+    return [body for _, _, body in ledger.records()]
+
+
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
+    if len(args) == 2 and args[0] == "export":
+        if not Path(args[1]).is_file():
+            print(f"no such ledger: {args[1]}", file=sys.stderr)
+            return 2
+        for line in export_ndjson(Ledger(args[1])):
+            print(line)
+        return 0
     if len(args) != 2 or args[0] != "verify":
-        print("usage: python -m orchestrator.ledger verify PATH", file=sys.stderr)
+        print("usage: python -m orchestrator.ledger verify|export PATH", file=sys.stderr)
         return 2
     if not Path(args[1]).is_file():
         print(f"no such ledger: {args[1]}", file=sys.stderr)

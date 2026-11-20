@@ -7,6 +7,7 @@ default_ttl_seconds: 900
 min_approved_ttl_seconds: 60
 max_approved_ttl_seconds: 86400
 max_refinement_cycles: 2
+ledger_append_attempts: 3
 badlist_path: lab/fixtures/badlist.v1.json
 badlist_sha256: a3e8be0528935b2137baa7bba657981dcab58a7085f4a5348593c8abff8fc67c
 campaign_half_life_hours: 72

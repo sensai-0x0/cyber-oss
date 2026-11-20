@@ -70,7 +70,7 @@ def test_golden_chain_pins_the_record_format(tmp_path):
 def test_intact_chain_verifies(tmp_path):
     ledger = fixed_ledger(tmp_path / "l.sqlite")
     fill(ledger, 6)
-    assert len(ledger.records()) == 6
+    assert len(ledger.records()) >= 6  # a mitigation adds a proposal and a decision record
     assert verify_chain(ledger) is None
 
 
@@ -132,15 +132,29 @@ def outcome(compiled, value):
     config = {"configurable": {"thread_id": "same"}}
     result = compiled.invoke({"event": value}, config=config)
     interrupt = result.pop("__interrupt__", None)
-    return result, interrupt[0].value if interrupt else None
+    result.pop("proposal", None)  # the citation, absent without a ledger (ADR 0005)
+    payload = dict(interrupt[0].value) if interrupt else None
+    if payload:  # the ledger citation is the one intended difference (ADR 0005)
+        payload.pop("ledger_seq", None)
+        payload.pop("evidence_digest", None)
+    return result, payload
 
 
-def test_a_failing_ledger_write_leaves_the_result_identical():
-    value = run_event(**staging_attributes())
+def test_a_failing_ledger_write_leaves_an_observe_result_identical():
+    value = run_event(**staging_attributes(0))  # no mitigation, so no proposal is needed
     plain = outcome(build_graph(checkpointer=MemorySaver()), value)
-    broken = BrokenLedger()
-    with_failure = outcome(build_graph(checkpointer=MemorySaver(), ledger=broken), value)
+    with_failure = outcome(build_graph(checkpointer=MemorySaver(), ledger=BrokenLedger()), value)
     assert with_failure == plain
+    assert plain[0]["policy"]["action"] == "observe"
+
+
+def test_a_failing_ledger_write_stops_a_mitigation_proposal():
+    """ADR 0005 reverses Phase 2 for mitigations: no evidence record, nothing to sign."""
+    value = run_event(**staging_attributes())
+    result, payload = outcome(
+        build_graph(checkpointer=MemorySaver(), ledger=BrokenLedger()), value
+    )
+    assert payload is None and result["policy"]["action"] == "observe"
 
 
 def test_a_failed_write_marks_the_run_unrecorded():
@@ -179,7 +193,7 @@ def test_resume_after_a_restart_appends_exactly_one_record(tmp_path):
     value = run_event("10.0.0.0/16", **staging_attributes())
     result = first.invoke({"event": value}, config=config)
     assert "__interrupt__" in result
-    assert ledger.records() == []  # nothing is recorded while the decision is pending
+    assert len(ledger.records()) == 1  # only the proposal exists while the decision is pending
 
     restarted = build_graph(
         checkpointer=build_sqlite_checkpointer(str(checkpoints)),
@@ -187,8 +201,8 @@ def test_resume_after_a_restart_appends_exactly_one_record(tmp_path):
     )
     restarted.invoke(Command(resume={"approved": True, "ttl_seconds": 300}), config=config)
     rows = ledger.records()
-    assert len(rows) == 1
-    record = json.loads(rows[0][2])
+    assert len(rows) == 2  # the proposal, then exactly one decision record after the restart
+    record = json.loads(rows[1][2])
     assert record["policy"]["approved"] is True and record["policy"]["ttl_seconds"] == 300
     assert verify_chain(ledger) is None
 
@@ -222,7 +236,7 @@ def test_no_graph_node_reads_the_ledger():
                 importers.append(path.name)
     assert sorted(set(importers)) == ["graph.py"]
     source = (ROOT / "orchestrator" / "ledger.py").read_text()
-    node_source = source[source.index("def make_record_node") : source.index("def main")]
+    node_source = source[source.index("def make_propose_node") : source.index("def export_ndjson")]
     assert ".records(" not in node_source and "verify_chain" not in node_source
 
 

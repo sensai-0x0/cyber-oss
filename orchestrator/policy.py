@@ -130,6 +130,7 @@ def approve_policy(state: GraphState) -> dict[str, Any]:
     if policy["action"] != "mitigate" or policy["approved"]:
         return {}
     config = load_policy()
+    proposal = state.get("proposal") or {}
     decision = interrupt(
         {
             "type": "approval_required",
@@ -138,6 +139,8 @@ def approve_policy(state: GraphState) -> dict[str, Any]:
             "broad": policy["broad"],
             "confidence": state["intel"]["confidence"],
             "max_ttl_seconds": config["max_approved_ttl_seconds"],
+            # The ledger record the operator reviews (ADR 0005); absent when no ledger is wired.
+            **{key: proposal[key] for key in ("ledger_seq", "evidence_digest") if key in proposal},
         }
     )
     return {"policy": apply_decision(policy, decision, config)}
