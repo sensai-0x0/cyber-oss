@@ -20,6 +20,9 @@ def load_policy() -> dict[str, Any]:
     config = yaml.safe_load(POLICY_FILE.read_text())
     if config.get("version") != "v1":
         raise ValueError("unsupported policy version")
+    from orchestrator.provenance import verify_badlist
+
+    verify_badlist(config)  # refuse to load if the pinned badlist was edited or removed
     return config
 
 

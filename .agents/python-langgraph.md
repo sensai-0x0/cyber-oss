@@ -15,6 +15,7 @@ One responsibility per module. A node function lives beside the logic it runs, n
 | `orchestrator/state.py` | `DeltaEvent`, `Cluster`, `IntelScore`, `Policy`, `GraphState` | Node logic, I/O |
 | `orchestrator/cluster.py` | `cluster_event` (stable TLS, favicon, certificate indicators; increments `cycles`) | Network calls |
 | `orchestrator/score.py` | `score_threat_intel`, `route_after_intel` | Policy decisions, thresholds |
+| `orchestrator/provenance.py` | Evidence classes (OBSERVED, DERIVED, ASSERTED), the pinned badlist check | Scoring weights, I/O beyond the pinned file |
 | `orchestrator/policy.py` | `load_policy`, `synthesize_policy`, `approve_policy` | Scoring, clustering |
 | `orchestrator/graph.py` | `build_graph(checkpointer=None)`: nodes, edges, compile | Business logic |
 | `orchestrator/policy.yaml` | Every threshold and TTL bound | Code |

@@ -6,6 +6,7 @@ from langgraph.types import Command
 
 from orchestrator.graph import build_graph
 from orchestrator.state import DeltaEvent
+from orchestrator.tests.evidence import staging_attributes
 
 
 def event(target: str = "198.51.100.0/24", **attributes: Any) -> dict:
@@ -35,7 +36,7 @@ def test_low_confidence_produces_no_mitigation():
 
 def test_narrow_action_still_interrupts_while_auto_approve_is_off():
     compiled = build_graph(checkpointer=MemorySaver())
-    value = event("198.51.100.7", recent_ct=True, known_bad=True, shared_fingerprints=3)
+    value = event("198.51.100.7", **staging_attributes())
     result, _ = invoke(compiled, {"event": value})
     assert result["policy"]["action"] == "mitigate"
     assert result["policy"]["broad"] is False
@@ -49,7 +50,7 @@ def test_narrow_action_skips_the_operator_only_when_policy_enables_it(monkeypatc
     enabled = {**policy_module.load_policy(), "auto_approve_narrow": True}
     monkeypatch.setattr(policy_module, "load_policy", lambda: enabled)
     compiled = build_graph(checkpointer=MemorySaver())
-    value = event("198.51.100.7", recent_ct=True, known_bad=True, shared_fingerprints=3)
+    value = event("198.51.100.7", **staging_attributes())
     result, _ = invoke(compiled, {"event": value})
     assert result["policy"]["approved"] is True
     assert result["policy"]["ttl_seconds"] > 0
@@ -58,7 +59,7 @@ def test_narrow_action_skips_the_operator_only_when_policy_enables_it(monkeypatc
 
 def test_broad_action_interrupts_and_resumes_with_operator_decision():
     compiled = build_graph(checkpointer=MemorySaver())
-    value = event("10.0.0.0/16", recent_ct=True, known_bad=True, shared_fingerprints=3)
+    value = event("10.0.0.0/16", **staging_attributes())
     result, config = invoke(compiled, {"event": value})
     assert result["__interrupt__"][0].value["type"] == "approval_required"
     assert result["policy"]["action"] == "mitigate"
@@ -71,7 +72,7 @@ def test_broad_action_interrupts_and_resumes_with_operator_decision():
 
 def test_operator_can_reject_broad_action():
     compiled = build_graph(checkpointer=MemorySaver())
-    value = event("10.0.0.0/16", recent_ct=True, known_bad=True, shared_fingerprints=3)
+    value = event("10.0.0.0/16", **staging_attributes())
     _, config = invoke(compiled, {"event": value})
     resumed = compiled.invoke(Command(resume={"approved": False}), config=config)
     assert resumed["policy"]["action"] == "observe"
@@ -80,5 +81,5 @@ def test_operator_can_reject_broad_action():
 
 def test_refinement_loop_is_bounded():
     compiled = build_graph(checkpointer=MemorySaver())
-    result, _ = invoke(compiled, {"event": event(recent_ct=True)})
+    result, _ = invoke(compiled, {"event": event(**staging_attributes(1))})
     assert result["cycles"] <= 2
