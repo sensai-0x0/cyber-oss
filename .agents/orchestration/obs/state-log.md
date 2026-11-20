@@ -49,11 +49,13 @@ wiring, not missing primitives — and four of them are invariants with no enfor
    resume with no gaps or duplicates.
 5. **Retarget E01-E09** onto real paths per ADR 0003, then run them and record results.
 6. Durable LangGraph checkpointer and NATS consumer.
+7. **Fleet (proposed, 2026-11-20).** Phases 0 to 9 in [../../../plans/fleet/README.md](../../../plans/fleet/README.md). Phase 1 there is plan item 1 above (scope gate), delivered as a signed scope bundle. Capacity figures and the interface catalogue: [../../../plans/fleet/interfaces-and-agent-flow.md](../../../plans/fleet/interfaces-and-agent-flow.md).
 
 ## Decisions
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-20 | Fleet command path: the agent talks to `fleetd` over MCP; `fleetd` commands hunters with Ed25519-signed, scoped, expiring `Command v1` envelopes on NATS; stdio MCP only for local and lab runs; `hunterd` stays non-MCP | Approved by Sunyata in the project thread. [../../../spec/DECISIONS/0007-fleet-command-path.md](../../../spec/DECISIONS/0007-fleet-command-path.md); plan in [../../../plans/fleet/README.md](../../../plans/fleet/README.md) |
 | 2026-11-21 | Four-service layout is authoritative; single-binary MCP design superseded | [../../../spec/DECISIONS/0003-architecture-authority.md](../../../spec/DECISIONS/0003-architecture-authority.md). Code, schemas, CI and the accepted ADRs all implement it |
 | 2026-11-21 | Outlines are gated, not merely conventional | 32 of 35 project markdown files had dead links and nothing could detect it. See [../../outline-method.md](../../outline-method.md) |
 | 2026-11-21 | Language idioms split into `.agents/go.md` and `.agents/python-langgraph.md` | One file per language, grounded in the implemented code |
@@ -77,6 +79,7 @@ wiring, not missing primitives — and four of them are invariants with no enfor
 
 | Date | Where | Error | Fix / status |
 |---|---|---|---|
+| 2026-11-20 | `hunterd/store/badger_store.go` | `badger.DefaultOptions` peaked at about 720 MB RSS in a 200k-write test; a small VM would run out of memory | Open; fleet plan phase 2 (tuned options, `GOMEMLIMIT`) |
 | 2026-11-21 | `hunterd/probes/` | Both runners dial immediately; no scope check anywhere (I1-I5) | Open, plan item 1 |
 | 2026-11-21 | `enforcerd/enforcer.go` | Pending actions held in memory; no pre-install persist, no reaper. A restart loses every active rule's deadline (I12, I13) | Open, plan item 2 |
 | 2026-11-21 | `hunterd` | No rate limiter (I6) | Open, plan item 3 |
