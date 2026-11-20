@@ -1,5 +1,7 @@
 # Authorized scope and safety
 
+**Status:** authoritative · **Derived from:** engagement authorization requirements · **Updated:** 2026-11-21
+
 Sentinel Hunter actively connects to targets. Run it only where the operator has explicit authorization and a documented exclusions list. The included fixtures are the default development scope.
 
 A hunt record must contain:

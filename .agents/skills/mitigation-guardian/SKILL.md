@@ -3,6 +3,8 @@ name: mitigation-guardian
 description: Review and operate signed, human-approved, TTL-bounded RPZ and nftables mitigations. Use for policy thresholds, approval requests, action verification, expiration, revocation, false positives, and rollback.
 ---
 
+**Status:** authoritative · **Derived from:** `spec/`, `schemas/` · **Updated:** 2026-11-21
+
 # Mitigation guardian
 
 Calls: contract-steward

@@ -39,6 +39,20 @@ jobs:
       - run: uv run ruff check orchestrator .github/scripts
       - run: uv run pytest
 
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.x"
+          enable-cache: true
+      - run: uv sync --frozen --python 3.12
+      - name: Test the outline validator
+        run: uv run pytest .github/scripts/tests/test_validate_outlines.py
+      - name: Check outline links, paths, thresholds, and provenance
+        run: uv run python .github/scripts/validate_outlines.py --strict
+
   lab-config:
     runs-on: ubuntu-latest
     steps:

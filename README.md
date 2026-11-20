@@ -1,23 +1,31 @@
 # Sentinel Hunter
 
+**Status:** authoritative · **Derived from:** `spec/`, the tree · **Updated:** 2026-11-21
+
 A test-first scaffold for authorized pre-attack infrastructure hunting, LangGraph triage, human-approved response, and automatic mitigation expiry.
 
-> Active probes and firewall/DNS changes require explicit authorization. Start with the loopback-only lab. This repository does not claim production integration is complete; see `docs/ARCHITECTURE.md`.
+> Active probes and firewall/DNS changes require explicit authorization. Start with the loopback-only lab. This repository does not claim production integration is complete; see [spec/ARCHITECTURE.md](spec/ARCHITECTURE.md).
+>
+> **Scope enforcement is not yet implemented.** The probe runners dial whatever target they are given, and no component holds an authorized-target allowlist. Invariants I1–I5 in [.agents/orchestration/invariants.md](.agents/orchestration/invariants.md) therefore have no enforcement point today; see [spec/DECISIONS/0003-architecture-authority.md](spec/DECISIONS/0003-architecture-authority.md) consequence 4. Until that lands, probe only the loopback lab.
 
 ## Layout
 
 ```text
 repo/
-├── CLAUDE.md                    # Contributor commands, safety invariants, skill entry points
-├── .agents/language-idioms.md   # Go + Python implementation conventions
+├── CLAUDE.md                   # Contributor commands, safety invariants, skill entry points
+├── .agents/                    # Agent instructions: go.md, python-langgraph.md,
+│                               #   outline-method.md, evals/, orchestration/, skills/
+├── .claude/                    # Orchestrator agent and its skills
+├── spec/                       # Normative: ARCHITECTURE, SCOPE, STATE, PRD, DECISIONS/
+├── plans/                      # Intent: phase plans, data model, interface contracts
+├── docs/                       # Narrative explanation and roadmap
 ├── schemas/                    # Versioned DeltaEvent + MitigationAction JSON contracts
 ├── hunterd/                    # Go adapters, Feistel cursor, Badger store/novelty, NDJSON publish
 ├── orchestrator/               # Python graph.py, cluster.py, score.py, policy.yaml + tests
 ├── enforcerd/                  # Go RPZ/nft adapters, Ed25519 verification, TTL lifecycle
 ├── operator/                   # Approval/rejection and key-generation CLI
 ├── deploy/                     # Loopback Compose, NATS configuration, local cert generator
-├── lab/                        # Harmless fake C2, disabled phishing panel, DNS/firewall targets
-└── docs/                       # ARCHITECTURE.md, SCOPE.md, STATE.md, DECISIONS/
+└── lab/                        # Harmless fake C2, disabled phishing panel, DNS/firewall targets
 ```
 
 ## Verify locally
@@ -28,6 +36,7 @@ uv sync --frozen --python 3.12
 uv run pytest
 uv run ruff check orchestrator .github/scripts
 uv run python .github/scripts/validate_skills.py .agents/skills
+uv run python .github/scripts/validate_outlines.py
 docker compose -f deploy/compose.yaml config --quiet
 ```
 

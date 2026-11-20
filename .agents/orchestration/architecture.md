@@ -1,6 +1,10 @@
 # Architecture
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). Interfaces: [interfaces.md](interfaces.md).
+**Status:** proposed · **Derived from:** superseded by [../../spec/DECISIONS/0003-architecture-authority.md](../../spec/DECISIONS/0003-architecture-authority.md) · **Updated:** 2026-11-21
+
+> Design history, not instructions. The implemented architecture is in [../../spec/ARCHITECTURE.md](../../spec/ARCHITECTURE.md).
+
+Universal rules: [../CLAUDE.md](../../CLAUDE.md). Interfaces: [interfaces.md](interfaces.md).
 
 ## Components
 
@@ -37,6 +41,6 @@ The older Project Description differs from the Architecture Outline. **The outli
 | `hunterd` daemon | `hunter` MCP stdio binary, spawned by the agent |
 | Three-agent graph (Clustering, Scoring, Policy) | One graph: `plan_or_reason` → `execute_safe_tool` / `human_gate` |
 | Backpressure channel into LangGraph | Pull model: agent calls `scan_cidr_delta` with `batch_size` ≤ 1024 |
-| tlsx streams CT logs | Not in scope. tlsx probes hosts; CT streaming needs a separate client (see [state-log.md](state-log.md) open questions) |
+| tlsx streams CT logs | Not in scope. tlsx probes hosts; CT streaming needs a separate client (see [state-log.md](obs/state-log.md) open questions) |
 
 Clustering and scoring live inside `plan_or_reason` reasoning plus `query_kv_history`, not separate agents.

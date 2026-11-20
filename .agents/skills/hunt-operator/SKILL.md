@@ -3,6 +3,8 @@ name: hunt-operator
 description: Operate authorized pre-attack hunts from scoped randomized scanning through delta triage and reversible response. Use for hunt planning, campaign investigation, cluster scoring, operator interrupts, and operational handoffs.
 ---
 
+**Status:** authoritative · **Derived from:** `spec/`, `schemas/` · **Updated:** 2026-11-21
+
 # Hunt operator
 
 Calls: contract-steward lab-validator mitigation-guardian

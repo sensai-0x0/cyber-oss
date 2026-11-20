@@ -1,6 +1,8 @@
 # Claude Model Selection
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). Use only these three models.
+**Status:** authoritative · **Derived from:** [../evals/constitution.md](../evals/constitution.md) · **Updated:** 2026-11-21
+
+Universal rules: [../CLAUDE.md](../../CLAUDE.md). Use only these three models.
 
 | Model | ID | Use for |
 |---|---|---|
@@ -18,12 +20,12 @@ Universal rules: [../CLAUDE.md](../CLAUDE.md). Use only these three models.
 | Security review of any diff touching [invariants.md](invariants.md) | Opus 5.5 |
 | Debugging races, deadlocks, flaky tests | Opus 5.5 |
 | `pkg/kv`, `pkg/probe`, MCP plumbing | Sonnet 5.5 |
-| `agent/graph.py`, `agent/tools.py` | Sonnet 5.5 |
+| `orchestrator/graph.py`, `orchestrator/policy.py` | Sonnet 5.5 |
 | Writing tests and fixtures | Sonnet 5.5 |
 | Routine code review | Sonnet 5.5 |
 | Formatting, lint fixes, renames, doc touch-ups | Haiku 5.5 |
 | Generating `DeltaEvent` JSONL fixtures from a template | Haiku 5.5 |
-| Updating [state-log.md](state-log.md), summarising test output | Haiku 5.5 |
+| Updating [state-log.md](obs/state-log.md), summarising test output | Haiku 5.5 |
 
 ## Runtime agent
 

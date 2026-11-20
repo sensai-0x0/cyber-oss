@@ -3,6 +3,8 @@ name: lab-validator
 description: Validate the complete Sentinel Hunter pipeline in the isolated fake-C2, phishing, DNS, and firewall lab. Use after build changes, before operations, and for end-to-end approval or TTL-expiry evidence.
 ---
 
+**Status:** authoritative · **Derived from:** `spec/`, `schemas/` · **Updated:** 2026-11-21
+
 # Lab validator
 
 Calls: pipeline-builder mitigation-guardian

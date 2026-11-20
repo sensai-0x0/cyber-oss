@@ -1,8 +1,12 @@
 # Interfaces
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). Safety rules: [invariants.md](invariants.md). Agent side: [agent-graph.md](agent-graph.md).
+**Status:** proposed · **Derived from:** superseded by [../../spec/DECISIONS/0003-architecture-authority.md](../../spec/DECISIONS/0003-architecture-authority.md) · **Updated:** 2026-11-21
 
-These signatures are the contract. Change this file first, log it in [state-log.md](state-log.md), then change code.
+> Design history, not instructions. These signatures describe paths that do not exist; see the mapping table in ADR 0003.
+
+Universal rules: [../CLAUDE.md](../../CLAUDE.md). Safety rules: [invariants.md](invariants.md). Agent side: [agent-graph.md](agent-graph.md).
+
+These signatures are the contract. Change this file first, log it in [state-log.md](obs/state-log.md), then change code.
 
 ## `mission.yaml`
 

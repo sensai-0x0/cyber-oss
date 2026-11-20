@@ -1,5 +1,7 @@
 # Architecture
 
+**Status:** authoritative · **Derived from:** the tree, [DECISIONS/0001-service-boundaries.md](DECISIONS/0001-service-boundaries.md) · **Updated:** 2026-11-21
+
 ## Trust and data flow
 
 ```text
@@ -31,7 +33,7 @@ hunterd: Feistel cursor -> tlsx/httpx -> Badger novelty gate
 - **`hunterd/probes/`** normalizes tlsx and httpx results into DeltaEvent v1. CT streaming uses the same `source: ct` contract but no external CT session is started by tests.
 - **`orchestrator/graph.py`** wires the three agents; `cluster.py`, `score.py`, and `policy.py` keep their responsibilities separate. `policy.yaml` is the single threshold source.
 - **`operator/`** turns review decisions into signed actions; it has no firewall access.
-- **`enforcerd/verify_signature.go`** fails closed before signed backends. `rpz/` and `nft/` validate input and invoke executables without a shell. `ttl.go` owns the 24-hour limit.
+- **`enforcerd/verify_signature.go`** fails closed before signed backends. `enforcerd/rpz/` and `enforcerd/nft/` validate input and invoke executables without a shell. `ttl.go` owns the 24-hour limit.
 - **`deploy/`** is a loopback lab, not production deployment manifests. NATS TLS material is generated locally and never committed.
 
 ## Backpressure and durability
