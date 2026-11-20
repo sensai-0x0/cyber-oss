@@ -12,6 +12,7 @@ Universal rules: [../CLAUDE.md](../CLAUDE.md).
 - The NATS password in Compose is a lab placeholder. A real deployment injects secrets from the environment or a secret manager (see the secrets rule in [../CLAUDE.md](../CLAUDE.md)).
 - No Go or Python services are built here yet; `hunterd`, `enforcerd` and `operator` run from source.
 - Pin image tags; do not use `latest`.
+- The `graph` profile runs FalkorDB on `graphnet` (internal, no published port). `FALKORDB_PASSWORD` is required and has no default, so `compose config` needs a throwaway value, as in the verify block below.
 
 **Rules that apply**
 
@@ -21,7 +22,7 @@ Universal rules: [../CLAUDE.md](../CLAUDE.md).
 **Verify**
 
 ```bash
-docker compose -f deploy/compose.yaml config --quiet
+FALKORDB_PASSWORD=ci-only docker compose -f deploy/compose.yaml config --quiet
 uv run pytest orchestrator/tests/test_lab.py
 ./deploy/certs/generate.sh
 ```
