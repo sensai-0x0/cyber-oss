@@ -8,6 +8,8 @@ The `.agents/` directory is **critical project context**, not optional documenta
 
 Read `.agents/language-idioms.md` before editing Go or Python. Write behavior and contract tests first, then make the smallest implementation change that satisfies them.
 
+Actively manage context rather than letting it grow unmanaged: before starting a new phase, feature, or unrelated task, persist anything durable (decisions, results, open questions) to `.agents/orchestration/obs/state-log.md` or `spec/STATE.md` as appropriate, then clear or compact context. Don't wait until a context limit forces it. Use the `context-compress` skill for this.
+
 ## Safety invariants
 
 - Active probing requires an explicit, recorded authorized scope. Use `lab/` for development.

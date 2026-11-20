@@ -1,6 +1,6 @@
 # Invariants and Security Rules
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). These are non-negotiable. A change that weakens one is a bug, even if tests pass.
+Universal rules: [../CLAUDE.md](../../CLAUDE.md). These are non-negotiable. A change that weakens one is a bug, even if tests pass.
 
 ## Scope (authorized engagement)
 

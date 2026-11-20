@@ -1,8 +1,8 @@
 # Interfaces
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). Safety rules: [invariants.md](invariants.md). Agent side: [agent-graph.md](agent-graph.md).
+Universal rules: [../CLAUDE.md](../../CLAUDE.md). Safety rules: [invariants.md](invariants.md). Agent side: [agent-graph.md](agent-graph.md).
 
-These signatures are the contract. Change this file first, log it in [state-log.md](state-log.md), then change code.
+These signatures are the contract. Change this file first, log it in [state-log.md](obs/state-log.md), then change code.
 
 ## `mission.yaml`
 

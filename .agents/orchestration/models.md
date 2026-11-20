@@ -1,6 +1,6 @@
 # Claude Model Selection
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). Use only these three models.
+Universal rules: [../CLAUDE.md](../../CLAUDE.md). Use only these three models.
 
 | Model | ID | Use for |
 |---|---|---|
@@ -23,7 +23,7 @@ Universal rules: [../CLAUDE.md](../CLAUDE.md). Use only these three models.
 | Routine code review | Sonnet 5.5 |
 | Formatting, lint fixes, renames, doc touch-ups | Haiku 5.5 |
 | Generating `DeltaEvent` JSONL fixtures from a template | Haiku 5.5 |
-| Updating [state-log.md](state-log.md), summarising test output | Haiku 5.5 |
+| Updating [state-log.md](obs/state-log.md), summarising test output | Haiku 5.5 |
 
 ## Runtime agent
 

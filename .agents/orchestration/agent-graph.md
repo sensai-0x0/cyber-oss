@@ -1,6 +1,6 @@
 # LangGraph Agent (`agent/`)
 
-Universal rules: [../CLAUDE.md](../CLAUDE.md). Tool contracts: [interfaces.md](interfaces.md). Python style: [language-idioms.md](language-idioms.md#python).
+Universal rules: [../CLAUDE.md](../../CLAUDE.md). Tool contracts: [interfaces.md](interfaces.md). Python style: [language-idioms.md](language-idioms.md#python).
 
 ## State
 
