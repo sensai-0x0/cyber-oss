@@ -1,0 +1,8 @@
+# Evaluation settings, kept apart from runtime policy.yaml.
+version: v1
+dataset_path: orchestrator/tests/fixtures/campaigns/campaigns.v1.jsonl
+dataset_seed: 20260101
+dataset_sha256: f5f63824c977e7f3a5636519e310d990ae5746b0f18149bef6f8e155bed1791b
+# The best single feature, used alone, may not classify more events correctly than this.
+# If a generator change pushes it above, the dataset has become too easy to be a test.
+separability_ceiling: 0.85
