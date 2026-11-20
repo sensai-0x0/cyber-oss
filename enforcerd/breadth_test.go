@@ -74,7 +74,7 @@ func (r *recordingBackend) Revoke(context.Context, Action) error { return nil }
 func TestSignedBackendRejectsForgedNarrowFlag(t *testing.T) {
 	public, private, _ := ed25519.GenerateKey(nil)
 	backend := &recordingBackend{}
-	signed := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth}
+	signed := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth, Now: fixedClock}
 	action := Action{
 		ID: "forged", Kind: KindNFTables, Target: "10.0.0.0/8", Broad: false, Approved: true,
 		ApprovedBy: "analyst", TTL: time.Minute, CreatedAt: time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
@@ -106,7 +106,7 @@ func TestSignedBackendWithoutBreadthFailsClosed(t *testing.T) {
 func TestSignedBackendAppliesCorrectlyClassifiedActions(t *testing.T) {
 	public, private, _ := ed25519.GenerateKey(nil)
 	backend := &recordingBackend{}
-	signed := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth}
+	signed := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth, Now: fixedClock}
 	for i, tc := range []struct {
 		target string
 		broad  bool

@@ -136,6 +136,15 @@ type SignedBackend struct {
 	// MinVersion is the oldest accepted schema version. Empty means "v1" during the ADR 0005
 	// compatibility window; set "v2" at the cut-over.
 	MinVersion string
+	// Now is the clock expiry is checked against. Nil means time.Now; tests pin it.
+	Now func() time.Time
+}
+
+func (s SignedBackend) now() time.Time {
+	if s.Now == nil {
+		return time.Now()
+	}
+	return s.Now()
 }
 
 func (s SignedBackend) Apply(ctx context.Context, action Action) error {
@@ -149,6 +158,13 @@ func (s SignedBackend) Apply(ctx context.Context, action Action) error {
 	}
 	if s.MinVersion == "v2" && action.schemaVersion() != "v2" {
 		return fmt.Errorf("%w: need v2, got %s", ErrVersionTooOld, action.schemaVersion())
+	}
+	if err := ValidateTTL(action.TTL); err != nil {
+		return err
+	}
+	// A valid signature does not make a stale or future-dated action live (SHR-002).
+	if _, err := deadline(action, s.now()); err != nil {
+		return err
 	}
 	if err := s.Breadth.Check(action.Target, action.Broad); err != nil {
 		return err
