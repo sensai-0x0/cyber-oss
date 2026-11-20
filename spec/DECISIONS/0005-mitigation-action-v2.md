@@ -1,8 +1,8 @@
 # ADR 0005: Mitigation action v2, a signature that commits to evidence
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-20
-- Approved by: nobody yet. This ADR changes signed bytes at a trust boundary, so `plans/ml-add/Phase-5.md` requires a named human sign-off before it is accepted. Record the reviewer here.
+- Approved by: the repository owner, on 2026-11-20, by accepting every recommendation in the open questions below. This records that approval; it is not an independent review. The trust-boundary sign-off that `plans/ml-add/Phase-5.md` lists as its own human checkpoint is still required on the finished diff, and a named reviewer should be added here when one signs off.
 
 ## Context
 
@@ -32,9 +32,9 @@ Three facts in the code shape the design:
 - The ledger head is not anchored anywhere external, so someone who rewrites the whole file and the export consistently is not detected. This is outside scope (Phase 5 Out) and stated here so the guarantee is not overread.
 - Residual: a bare `Enforcer` skips signature checks (SHR-009). v2 changes nothing for a caller that never goes through `SignedBackend`.
 
-## Open questions for the owner
+## Resolved questions (owner, 2026-11-20)
 
-1. **Window or hard cut?** Recommended: dual-accept with `MinVersion`, as in decision 6. The alternative is v2 only from day one, which breaks every v1 fixture and any operator tooling at once.
-2. **Cut-over date** for `MinVersion = v2`. Not set here. Pick it at the Phase 5 checkpoint.
-3. **Is failing a proposal on a ledger fault acceptable** (decision 3)? It is the safe direction, and a ledger outage then stops new mitigation proposals.
-4. **Canonicalization**: Go re-canonicalization with golden vectors (recommended), or have the Python export emit the exact hash-input bytes and let Go only hash them. The second is simpler, but it makes the operator trust the exporter for what was hashed.
+1. **Window or hard cut?** Decided: dual-accept with `MinVersion`, as in decision 6. The alternative is v2 only from day one, which breaks every v1 fixture and any operator tooling at once.
+2. **Cut-over date** for `MinVersion = v2`. Deferred and still unset. The owner sets it at the Phase 5 checkpoint. Until then `MinVersion` stays at v1, so the evidence binding is not enforced anywhere.
+3. **Failing a proposal on a ledger fault** (decision 3): accepted. It is the safe direction, and a ledger outage then stops new mitigation proposals.
+4. **Canonicalization**: decided on Go re-canonicalization with golden vectors, not having the Python export emit the exact hash-input bytes for Go to hash. That would be simpler, but it makes the operator trust the exporter for what was hashed.
