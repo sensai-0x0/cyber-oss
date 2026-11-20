@@ -90,7 +90,7 @@ When it is built, it must meet these rules:
 - `go test -race ./...` is mandatory. Shared state has one mutex, held across the whole state transition: `Enforcer.Enforce` holds `mu` across duplicate check, `Apply`, and insert so a duplicate ID cannot install two rules. Keep backend `Apply` bounded.
 - A `Range` is single-goroutine state. Share by handing over the cursor value (`Cursor()`/`Restore`), not the pointer.
 - BadgerDB allows one process per directory (I17). Only `hunterd` opens it. Never open a second `store.Open` on the same path in-process or from another service, and do not add a Go reader that bypasses `hunterd`.
-- `Expire` tries every due action, leaves each failure tracked and joins the errors, so one stuck revoke cannot hold back the others. `Run` logs a failed pass and keeps ticking (SHR-004). Never drop an action whose revoke failed.
+- `Expire` tries every due action, leaves each failure tracked and joins the errors, so one stuck revoke cannot hold back the others. `Run` logs when the failing set changes and keeps ticking (SHR-004). Revokes run outside the mutex with an in-flight marker, so a concurrent pass cannot revoke twice and `Enforce` is never blocked by a slow revoke. Never drop an action whose revoke failed.
 
 ## 7. State and persistence
 

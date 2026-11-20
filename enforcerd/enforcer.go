@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -67,12 +68,18 @@ type Enforcer struct {
 	backend Backend
 	mu      sync.Mutex
 	actions map[string]pendingAction
-	now     func() time.Time
+	// spent holds revoked IDs until their signed deadline, so a replay cannot reinstall a
+	// rule that was revoked at the capped deadline while its signature is still valid.
+	spent map[string]time.Time
+	now   func() time.Time
+	logf  func(format string, args ...any)
 }
 
 type pendingAction struct {
 	action    Action
 	expiresAt time.Time
+	// revoking marks an action whose revoke is in flight outside the lock.
+	revoking bool
 }
 
 // NewEnforcer is the only way to build an Enforcer. It refuses a SignedBackend that could
@@ -81,7 +88,10 @@ func NewEnforcer(signed SignedBackend) (*Enforcer, error) {
 	if err := signed.validate(); err != nil {
 		return nil, err
 	}
-	return &Enforcer{backend: signed, actions: make(map[string]pendingAction), now: time.Now}, nil
+	return &Enforcer{
+		backend: signed, actions: make(map[string]pendingAction), spent: make(map[string]time.Time),
+		now: time.Now, logf: log.Printf,
+	}, nil
 }
 
 func (e *Enforcer) Enforce(ctx context.Context, action Action) (Receipt, error) {
@@ -105,6 +115,8 @@ func (e *Enforcer) Enforce(ctx context.Context, action Action) (Receipt, error) 
 	if limit := now.Add(action.TTL); tracked.After(limit) {
 		tracked = limit
 	}
+	// Receipt.ExpiresAt is the authoritative deadline: the enforcer revokes then, even when
+	// the signed ExpiresAt the backend sees is later (by at most MaxClockSkew).
 	receipt := Receipt{ActionID: action.ID, ExpiresAt: tracked}
 
 	// Serialize the state transition with Apply so duplicate IDs cannot create
@@ -113,6 +125,9 @@ func (e *Enforcer) Enforce(ctx context.Context, action Action) (Receipt, error) 
 	defer e.mu.Unlock()
 	if _, exists := e.actions[action.ID]; exists {
 		return Receipt{}, ErrDuplicateAction
+	}
+	if until, revoked := e.spent[action.ID]; revoked && now.Before(until) {
+		return Receipt{}, fmt.Errorf("%w: already enforced and revoked", ErrDuplicateAction)
 	}
 	if err := e.backend.Apply(ctx, action); err != nil {
 		return Receipt{}, err
@@ -145,27 +160,49 @@ func deadline(action Action, now time.Time) (time.Time, error) {
 // tracked so a later pass retries them rather than letting them become permanent. The
 // returned error joins every failure; the slice lists only the actions actually revoked.
 func (e *Enforcer) Expire(ctx context.Context, now time.Time) ([]string, error) {
+	expired, _, err := e.expire(ctx, now)
+	return expired, err
+}
+
+// expire is Expire that also names the IDs whose revoke failed. Revokes run outside the
+// lock, so a slow backend never blocks Enforce; an in-flight action is skipped by a
+// concurrent pass and cannot be revoked twice.
+func (e *Enforcer) expire(ctx context.Context, now time.Time) (expired, failed []string, err error) {
 	e.mu.Lock()
-	defer e.mu.Unlock()
-	ids := make([]string, 0)
+	due := make([]pendingAction, 0)
 	for id, pending := range e.actions {
-		if !now.Before(pending.expiresAt) {
-			ids = append(ids, id)
+		if !pending.revoking && !now.Before(pending.expiresAt) {
+			pending.revoking = true
+			e.actions[id] = pending
+			due = append(due, pending)
 		}
 	}
-	sort.Strings(ids)
-	expired := make([]string, 0, len(ids))
+	for id, until := range e.spent {
+		if !now.Before(until) {
+			delete(e.spent, id)
+		}
+	}
+	e.mu.Unlock()
+	sort.Slice(due, func(i, j int) bool { return due[i].action.ID < due[j].action.ID })
+
 	var failures []error
-	for _, id := range ids {
-		pending := e.actions[id]
-		if err := e.backend.Revoke(ctx, pending.action); err != nil {
-			failures = append(failures, fmt.Errorf("revoke %s: %w", id, err))
-			continue
+	for _, pending := range due {
+		id := pending.action.ID
+		revokeErr := e.backend.Revoke(ctx, pending.action)
+		e.mu.Lock()
+		if revokeErr != nil {
+			pending.revoking = false
+			e.actions[id] = pending
+			failed = append(failed, id)
+			failures = append(failures, fmt.Errorf("revoke %s: %w", id, revokeErr))
+		} else {
+			delete(e.actions, id)
+			e.spent[id] = pending.action.CreatedAt.Add(pending.action.TTL)
+			expired = append(expired, id)
 		}
-		delete(e.actions, id)
-		expired = append(expired, id)
+		e.mu.Unlock()
 	}
-	return expired, errors.Join(failures...)
+	return expired, failed, errors.Join(failures...)
 }
 
 // Run reaps once immediately, then on every tick, until the context is canceled. A failed
@@ -176,9 +213,18 @@ func (e *Enforcer) Run(ctx context.Context, interval time.Duration) error {
 	}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+	reported := ""
 	for {
-		if _, err := e.Expire(ctx, e.now()); err != nil {
-			log.Printf("enforcerd: revocation failed, retrying next pass: %v", err)
+		// Log when the set of failing IDs changes, not on every pass, and name IDs only:
+		// a backend error can quote the target (go.md, Errors).
+		_, failed, _ := e.expire(ctx, e.now())
+		if current := strings.Join(failed, ","); current != reported {
+			if current != "" {
+				e.logf("enforcerd: revocation failed for %s; retrying every pass", current)
+			} else {
+				e.logf("enforcerd: pending revocations succeeded")
+			}
+			reported = current
 		}
 		select {
 		case <-ctx.Done():

@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/ed25519"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -174,7 +176,10 @@ func (f *flakyRevoker) Revoke(ctx context.Context, action Action) error {
 	failed := f.tries[action.ID] <= f.failures
 	f.mu.Unlock()
 	if f.calls != nil {
-		f.calls <- action.ID
+		select { // report without blocking, so a test that stops reading cannot stall Run
+		case f.calls <- action.ID:
+		default:
+		}
 	}
 	if failed {
 		return errors.New("backend unavailable")
@@ -243,8 +248,8 @@ func TestRunReapsOnStartBeforeTheFirstTick(t *testing.T) {
 	}
 	e.now = func() time.Time { return testNow.Add(time.Minute) }
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() { _ = e.Run(ctx, time.Hour) }()
+	done := make(chan error, 1)
+	go func() { done <- e.Run(ctx, time.Hour) }()
 	select {
 	case id := <-backend.calls:
 		if id != "due" {
@@ -252,5 +257,119 @@ func TestRunReapsOnStartBeforeTheFirstTick(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("no reap before the first tick")
+	}
+	cancel()
+	<-done
+}
+
+// blockingRevoker holds every revoke until released, to show Expire does not hold the lock.
+type blockingRevoker struct {
+	fakeBackend
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (b *blockingRevoker) Revoke(ctx context.Context, action Action) error {
+	b.entered <- struct{}{}
+	<-b.release
+	return b.fakeBackend.Revoke(ctx, action)
+}
+
+// A slow revoke must not block enforcement of new actions.
+func TestEnforceIsNotBlockedByASlowRevoke(t *testing.T) {
+	backend := &blockingRevoker{entered: make(chan struct{}, 1), release: make(chan struct{})}
+	e, private := signedEnforcer(t, backend)
+	if _, err := e.Enforce(context.Background(), sign(t, private, narrow("slow", testNow, time.Minute))); err != nil {
+		t.Fatal(err)
+	}
+	expired := make(chan []string, 1)
+	go func() {
+		ids, _ := e.Expire(context.Background(), testNow.Add(time.Minute))
+		expired <- ids
+	}()
+	<-backend.entered
+	enforced := make(chan error, 1)
+	go func() {
+		_, err := e.Enforce(context.Background(), sign(t, private, narrow("new", testNow, time.Hour)))
+		enforced <- err
+	}()
+	select {
+	case err := <-enforced:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Enforce blocked behind a revoke")
+	}
+	// A second pass while the first revoke is in flight must not revoke it again.
+	if ids, err := e.Expire(context.Background(), testNow.Add(time.Minute)); err != nil || len(ids) != 0 {
+		t.Fatalf("concurrent pass = %v, %v; want nothing", ids, err)
+	}
+	close(backend.release)
+	if ids := <-expired; len(ids) != 1 || ids[0] != "slow" {
+		t.Fatalf("expired = %v", ids)
+	}
+	if backend.revokeCalls() != 1 {
+		t.Fatalf("revokes = %d, want 1", backend.revokeCalls())
+	}
+}
+
+// A future-dated action is revoked at now+TTL, before its signed deadline; replaying it in
+// that gap must not reinstall it.
+func TestReplayInsideTheSkewWindowIsRefused(t *testing.T) {
+	backend := &fakeBackend{}
+	public, private, _ := ed25519.GenerateKey(nil)
+	clock := testNow
+	e, err := NewEnforcer(SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth, Now: func() time.Time { return clock }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.now = func() time.Time { return clock }
+	action := sign(t, private, narrow("early", testNow.Add(MaxClockSkew), time.Hour))
+	receipt, err := e.Enforce(context.Background(), action)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clock = receipt.ExpiresAt
+	if ids, err := e.Expire(context.Background(), clock); err != nil || len(ids) != 1 {
+		t.Fatalf("expire = %v, %v", ids, err)
+	}
+	clock = clock.Add(time.Second) // still before CreatedAt+TTL
+	if _, err := e.Enforce(context.Background(), action); !errors.Is(err, ErrDuplicateAction) {
+		t.Fatalf("replay in the skew window err = %v, want ErrDuplicateAction", err)
+	}
+	if backend.applyCalls() != 1 {
+		t.Fatalf("applied %d times, want 1", backend.applyCalls())
+	}
+}
+
+// A revoke that keeps failing is logged when the failing set changes, not on every pass,
+// and the line names action IDs only.
+func TestRunLogsAPersistentFailureOnce(t *testing.T) {
+	backend := &flakyRevoker{failures: 1 << 30, tries: map[string]int{}, calls: make(chan string, 8)}
+	e, private := signedEnforcer(t, backend)
+	if _, err := e.Enforce(context.Background(), sign(t, private, narrow("stuck", testNow, time.Minute))); err != nil {
+		t.Fatal(err)
+	}
+	e.now = func() time.Time { return testNow.Add(time.Minute) }
+	var lines []string
+	var mu sync.Mutex
+	e.logf = func(format string, args ...any) {
+		mu.Lock()
+		defer mu.Unlock()
+		lines = append(lines, fmt.Sprintf(format, args...))
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- e.Run(ctx, time.Millisecond) }()
+	for range 4 {
+		<-backend.calls
+	}
+	cancel()
+	<-done
+	mu.Lock()
+	defer mu.Unlock()
+	if len(lines) != 1 || !strings.Contains(lines[0], "stuck") || strings.Contains(lines[0], "phish.example") {
+		t.Fatalf("log lines = %q, want one naming the id only", lines)
 	}
 }
