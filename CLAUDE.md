@@ -26,6 +26,8 @@ An agent with no assigned task does not wait and does not invent new surface are
 
 Stay off any path another session or feature branch is holding; check `git worktree list` and the state log first. Never widen scope, relax a check, or touch `main` to clear an error.
 
+Actively manage context rather than letting it grow unmanaged: before starting a new phase, feature, or unrelated task, persist anything durable (decisions, results, open questions) to `.agents/orchestration/obs/state-log.md` or `spec/STATE.md` as appropriate, then clear or compact context. Don't wait until a context limit forces it. Use the `context-compress` skill for this.
+
 ## Safety invariants
 
 - Active probing requires an explicit, recorded authorized scope. Use `lab/` for development.
