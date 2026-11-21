@@ -6,13 +6,13 @@
 
 The `.agents/` directory is **critical project context**, not optional documentation. Preserve it and consult its files to maintain continuity across sessions, agents, phases, evaluations, and decisions.
 
-`@.agents/evals/orchestrator.md` is the master orchestrator plan and directs the system's planning, delegation, integration, evaluation, state management, and constitution-evolution workflow. Read it at session start, then load the linked allocation, fitness, and state files it references before orchestrating work.
+`@.agents/evals/phase-runner.md` is the phase-runner plan and directs the system's planning, delegation, integration, evaluation, state management, and constitution-evolution workflow. Read it at session start, then load the linked allocation, fitness, and state files it references before orchestrating work.
 
 Read [.agents/go.md](.agents/go.md) before editing Go and [.agents/python-langgraph.md](.agents/python-langgraph.md) before editing Python. Write behavior and contract tests first, then make the smallest implementation change that satisfies them.
 
 Before writing or changing any document under `.agents/`, `plans/` or `spec/`, read [.agents/outline-method.md](.agents/outline-method.md). It defines the authority ladder, the provenance header, and the rule that every path named must exist or be marked `(planned)`. `uv run python .github/scripts/validate_outlines.py` enforces the mechanical parts.
 
-Multi-feature work runs through the `orchestrator` agent in `.claude/agents/`, with its skills in `.claude/skills/`. `.agents/skills/` is capped at five by `.github/scripts/validate_skills.py`; never add a sixth there.
+Multi-feature work runs through the `phase-runner` agent in `.claude/agents/`, with its skills in `.claude/skills/`. `.agents/skills/` is capped at five by `.github/scripts/validate_skills.py`; never add a sixth there.
 
 ## Idle agents
 

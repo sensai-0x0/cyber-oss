@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Use when implementing, reviewing, or extending the orchestrator/ Python package (the LangGraph hunting agent: plan_or_reason, execute_safe_tool, human_gate; clustering, scoring, policy) or when a change touches the DeltaEvent, Cluster, GraphState, or MitigationAction contracts. Not the Master Orchestrator Plan (.agents/evals/orchestrator.md), which governs the top-level session's own planning/subagent workflow.
+description: Use when implementing, reviewing, or extending the orchestrator/ Python package (the LangGraph hunting agent: plan_or_reason, execute_safe_tool, human_gate; clustering, scoring, policy) or when a change touches the DeltaEvent, Cluster, GraphState, or MitigationAction contracts. Not the Phase Runner Plan (.agents/evals/phase-runner.md), which governs the top-level session's own planning/subagent workflow.
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
 ---
@@ -23,4 +23,4 @@ Conventions:
 - `GraphState` is `total=False`; treat every field as possibly absent and narrow before use, not after.
 - Any new policy action kind, tier boundary, or field on `GraphState`/`Policy` is a contract change: update `spec/STATE.md` and the JSON schema together with the code, in the same change.
 
-Report back to the calling session rather than merging yourself — per the Master Orchestrator Plan, only the orchestrator (the top-level session) merges to `develop`.
+Report back to the calling session rather than merging yourself — per the Phase Runner Plan, only the orchestrator (the top-level session) merges to `develop`.

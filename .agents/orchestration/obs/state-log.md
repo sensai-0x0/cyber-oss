@@ -55,6 +55,7 @@ wiring, not missing primitives — and four of them are invariants with no enfor
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-21 | `orchestrator` names one thing: the Python package. The build loop is now [../../evals/phase-runner.md](../../evals/phase-runner.md) and its agent is `.claude/agents/phase-runner.md`; `conductor` is unchanged | Three agents named two roles, and two of the three descriptions disambiguated themselves by negation. Documentation layer, so no refactor gate applies |
 | 2026-11-20 | Fleet command path: the agent talks to `fleetd` over MCP; `fleetd` commands hunters with Ed25519-signed, scoped, expiring `Command v1` envelopes on NATS; stdio MCP only for local and lab runs; `hunterd` stays non-MCP | Approved by Sunyata in the project thread. [../../../spec/DECISIONS/0007-fleet-command-path.md](../../../spec/DECISIONS/0007-fleet-command-path.md); plan in [../../../plans/fleet/README.md](../../../plans/fleet/README.md) |
 | 2026-11-20 | Phase 5 built: v2 schema, `canonjson`, `propose` ledger record, `operator review -ledger`, `SignedBackend.MinVersion` | ADR 0005. Needs `/security-review` and the trust-boundary human sign-off. Cut-over is 30 days after the merge to `develop`: 2026-12-20 (merged 2026-11-20) |
 | 2026-11-20 | SHR-001: Go derives `broad` from the target; `operator.Approve` and `SignedBackend` refuse a disagreeing flag | Phase 5 prerequisite. Tests in `enforcerd/breadth_test.go` and `operator/decision_test.go`. A bare `Enforcer` still trusts `Action.Broad` |

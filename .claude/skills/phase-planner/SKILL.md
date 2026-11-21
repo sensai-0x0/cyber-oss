@@ -13,7 +13,7 @@ score.
 
 ## Inputs
 
-- The phase from [.agents/evals/orchestrator.md](../../../.agents/evals/orchestrator.md) §2,
+- The phase from [.agents/evals/phase-runner.md](../../../.agents/evals/phase-runner.md) §2,
   or a phase file under `plans/planv1.0/`.
 - `.agents/evals/constitution.md` — genes in force.
 - `.agents/orchestration/obs/state-log.md` — what is already done.

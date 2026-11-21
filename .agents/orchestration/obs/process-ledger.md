@@ -1,6 +1,6 @@
 # Process Ledger
 
-**Status:** active · **Derived from:** conductor REFLECT stage, [../../evals/orchestrator.md](../../evals/orchestrator.md) §6 · **Updated:** 2026-11-21
+**Status:** active · **Derived from:** conductor REFLECT stage, [../../evals/phase-runner.md](../../evals/phase-runner.md) §6 · **Updated:** 2026-11-21
 
 Universal rules: [../../../CLAUDE.md](../../../CLAUDE.md). Written by the `conductor` skill at stage
 REFLECT; read at stage ORIENT. Newest entries first. Dates as YYYY-MM-DD.
@@ -22,7 +22,7 @@ entry. Delete an entry once its lesson is enforced by a gene, a gate, or a line 
 
 ## Candidate gene mutations
 
-Evidence collected here for the next constitution round (`.agents/evals/orchestrator.md` §6). Each
+Evidence collected here for the next constitution round (`.agents/evals/phase-runner.md` §6). Each
 row needs a gene, a direction, and the observation that motivates it — not a preference.
 
 | Date | Gene | Proposed change | Evidence (phase, unit, what happened) |

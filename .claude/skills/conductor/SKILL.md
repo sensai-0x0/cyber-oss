@@ -5,8 +5,8 @@ description: Master orchestrator for the Sentinel Hunter repo. Run this to decid
 
 # Conductor
 
-The conductor is the top-level session acting as the Master Orchestrator described in
-[`.agents/evals/orchestrator.md`](../../../.agents/evals/orchestrator.md). That document is the
+The conductor is the top-level session acting as the Phase Runner described in
+[`.agents/evals/phase-runner.md`](../../../.agents/evals/phase-runner.md). That document is the
 constitution's process; this skill is how a tick of it is actually executed. It does not replace
 it, and it does not restate it — read it.
 
@@ -32,12 +32,12 @@ Two work breakdowns exist and they disagree:
 - **[`plans/PHASESv1.0.md`](../../../plans/PHASESv1.0.md) (PHASE0–PHASE6) is the work breakdown.**
   Four-service layout: `hunterd/`, `orchestrator/`, `operator/`, `enforcerd/`. Real paths, real
   checkboxes, human checkpoints, evidence requirements.
-- **`.agents/evals/orchestrator.md` §2's phase table (P0–P5) is stale.** It allocates against
+- **`.agents/evals/phase-runner.md` §2's phase table (P0–P5) is stale.** It allocates against
   `pkg/cidr`, `pkg/kv`, `cmd/hunter`, `agent/` — paths that do not exist and that ADR 0001 plus
   `plans/PHASESv1.0.md` §0 supersede. Its §3–§8 (git discipline, gates, spawning, evolution, state,
   stop conditions) are current and binding.
 
-So: **allocate against `plans/`, operate per `orchestrator.md` §3–§8.** If
+So: **allocate against `plans/`, operate per `phase-runner.md` §3–§8.** If
 `spec/DECISIONS/0003-architecture-authority.md` has landed and says something materially different,
 stop and flag the conflict rather than proceeding on this assumption.
 
@@ -87,11 +87,11 @@ regardless of outcome.
 
 ### 5. DISPATCH — spawn, with everything the subagent needs to not ask
 
-One feature = one worktree = one branch (`orchestrator.md` §3). Every subagent prompt carries: the
+One feature = one worktree = one branch (`phase-runner.md` §3). Every subagent prompt carries: the
 task slice from its `PHASE{n}.md` (verbatim, including the model-tier hint and parallel-safety
 note), the invariants it touches from
 [`invariants.md`](../../../.agents/orchestration/invariants.md), its worktree path, its gate
-(`orchestrator.md` §4), the evidence-suffix format it must write back, and **"do not merge; report
+(`phase-runner.md` §4), the evidence-suffix format it must write back, and **"do not merge; report
 back."**
 
 A task flagged as touching a safety-critical path (scope enforcement, rate limiting, TTL bounds,
@@ -119,7 +119,7 @@ Then use the `context-compress` skill at the breakpoint. Do not wait for a conte
 
 Ask the question that produces a habit rather than a number: *what did I believe at PATH that turned
 out to be false at VERIFY?* Append anything durable to `process-ledger.md` in its format. Then, if a
-phase just closed, run the constitution mutation round (`orchestrator.md` §6) with the ledger as
+phase just closed, run the constitution mutation round (`phase-runner.md` §6) with the ledger as
 evidence for the hypotheses.
 
 A ledger entry earns its place only if it would change a future allocation. "Be more careful" is not
@@ -128,7 +128,7 @@ not a preference" is.
 
 ## Stop and ask the human
 
-`orchestrator.md` §8's conditions, plus: a 🔒 human checkpoint reached; a safety-critical mid-task
+`phase-runner.md` §8's conditions, plus: a 🔒 human checkpoint reached; a safety-critical mid-task
 checkpoint; two candidate paths scoring within noise of each other on a decision that is a risk
 judgment rather than an engineering one (e.g. a `policy.yaml` threshold); the authoritative-plan
 conflict above turning out to be real.
@@ -165,5 +165,5 @@ session to act on. Delegating the survey is the point: the repo audit is exactly
 high-volume, low-retention reading that should not occupy the context window that then has to verify
 a merge.
 
-Either way, DISPATCH and the merge stay in the top-level session. That is `orchestrator.md` §3 and
+Either way, DISPATCH and the merge stay in the top-level session. That is `phase-runner.md` §3 and
 §5, not a limitation of either file.

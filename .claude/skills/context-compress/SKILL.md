@@ -5,11 +5,11 @@ description: Actively clear or compact conversation context in the Sentinel Hunt
 
 # Context compress
 
-The orchestrator loop in `.agents/evals/orchestrator.md` (section 7) already has a durable memory: `state-log.md` is read at session start and written after every merge or phase, specifically so that a restart "rebuilds state from these files plus `git worktree list` and `git log develop`." Clearing or compacting context is safe exactly when that write has happened — the risk isn't the clear itself, it's clearing before anything durable has captured the reasoning behind a decision.
+The orchestrator loop in `.agents/evals/phase-runner.md` (section 7) already has a durable memory: `state-log.md` is read at session start and written after every merge or phase, specifically so that a restart "rebuilds state from these files plus `git worktree list` and `git log develop`." Clearing or compacting context is safe exactly when that write has happened — the risk isn't the clear itself, it's clearing before anything durable has captured the reasoning behind a decision.
 
 ## When to run this
 
-- A feature gate (`.agents/evals/orchestrator.md` section 4) just passed and merged to `develop`.
+- A feature gate (`.agents/evals/phase-runner.md` section 4) just passed and merged to `develop`.
 - Work is about to move to an unrelated phase, feature, or part of the codebase.
 - The conversation is dominated by exploratory noise — directory listings, failed probes, intermediate `git status`/`grep` output — that the next task gains nothing from re-reading.
 - You notice yourself about to re-derive something (a file's contents, a decision already made) that should already be on disk.

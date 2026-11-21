@@ -1,8 +1,8 @@
 # Orchestrator Constitution
 
-**Status:** active · **Derived from:** [orchestrator.md](orchestrator.md) · **Updated:** 2026-11-21
+**Status:** active · **Derived from:** [phase-runner.md](phase-runner.md) · **Updated:** 2026-11-21
 
-Read by [orchestrator.md](orchestrator.md) at the start of every phase. Evolved at the end of every phase (orchestrator.md §6). Universal rules: [../CLAUDE.md](../../CLAUDE.md).
+Read by [phase-runner.md](phase-runner.md) at the start of every phase. Evolved at the end of every phase (phase-runner.md §6). Universal rules: [../CLAUDE.md](../../CLAUDE.md).
 
 **Version:** v1 (seed) · **Last evolved:** 2026-11-20 · **Fitness:** not yet measured
 
