@@ -3,7 +3,7 @@
 `scenarios.jsonl` is a labelled `DeltaEvent` set for diagnosing
 `orchestrator/score.py:score_threat_intel` against the scenario taxonomy
 eval **E07** calls for (`.agents/evals/evals.md`). It is diagnostic
-evidence for the `.agents/evals/orchestrator.md` / Phase 2 human checkpoint,
+evidence for the `.agents/evals/phase-runner.md` / Phase 2 human checkpoint,
 **not** a pass/fail gate: see `orchestrator/tests/test_triage_quality.py`,
 which runs the scorer over this set and reports precision/recall without
 asserting a threshold on either.

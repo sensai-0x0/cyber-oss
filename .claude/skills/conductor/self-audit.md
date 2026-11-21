@@ -1,7 +1,7 @@
 # Self-audit — checking the tick, not just the code
 
 Read at stage VERIFY. Two halves. The first is the feature gate every subagent owes
-(`.agents/evals/orchestrator.md` §4). The second is the conductor auditing its own tick, which
+(`.agents/evals/phase-runner.md` §4). The second is the conductor auditing its own tick, which
 nothing else in the repo does — a bad allocation produces green tests and wasted budget, so the
 test suite cannot catch it.
 

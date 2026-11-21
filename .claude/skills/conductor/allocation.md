@@ -47,7 +47,7 @@ Generate candidates from these moves, in rough order of how often they pay off:
 ## Scoring
 
 Score each candidate on the five terms below. These mirror the fitness function in
-`.agents/evals/orchestrator.md` §6 deliberately — the conductor should optimize the thing it is
+`.agents/evals/phase-runner.md` §6 deliberately — the conductor should optimize the thing it is
 measured on.
 
 | Term | Weight | Estimate from |

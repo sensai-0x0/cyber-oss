@@ -2,7 +2,7 @@
 
 **Status:** active · **Derived from:** [../orchestration/invariants.md](../orchestration/invariants.md) · **Updated:** 2026-11-21
 
-Universal rules: [../../CLAUDE.md](../../CLAUDE.md). Used for feature gates ([testing.md](../testing.md)) and orchestrator fitness ([orchestrator.md](orchestrator.md) §6).
+Universal rules: [../../CLAUDE.md](../../CLAUDE.md). Used for feature gates ([testing.md](../testing.md)) and phase-runner fitness ([phase-runner.md](phase-runner.md) §6).
 
 **Invariant evals (E03, E04, E05) are hard gates:** any failure blocks merges and zeroes fitness.
 
@@ -19,7 +19,7 @@ Targets were retargeted onto real components by [../../spec/DECISIONS/0003-archi
 | E07 | Triage quality | Runtime agent | Live model, labelled set | Precision ≥ 0.95 |
 | E08 | Crash recovery | `hunterd/`, `enforcerd/` | Fault injection | 0 gaps, 0 dupes, 0 orphan rules |
 | E09 | Rate limit and stdout purity | `hunterd/` | Load | ≤ 1.05× pps; 100% valid JSON-RPC |
-| E10 | Orchestrator discipline | Orchestrator process | Git/log audit | 100% |
+| E10 | Phase-runner discipline | Phase-runner process | Git/log audit | 100% |
 
 Results go to `.agents/eval-results/<phase>-<date>.json`: `{id, pass, score, details, commit}`.
 
@@ -70,7 +70,7 @@ Results go to `.agents/eval-results/<phase>-<date>.json`: `{id, pass, score, det
 - **Check:** measured pps on the sink ≤ 105 in every 1 s window; excess returns `ERR_RATE_LIMIT`; every stdout line parses as JSON-RPC 2.0 (logs only on stderr).
 - **Pass:** both.
 
-### E10 Orchestrator discipline
-- **Input:** give the orchestrator a small feature task (e.g. add `query_kv_history` paging) on a scratch repo copy.
+### E10 Phase-runner discipline
+- **Input:** give the phase runner a small feature task (e.g. add `query_kv_history` paging) on a scratch repo copy.
 - **Check (git + file audit):** work on `feature/*` in its own worktree; ≥ 1 commit per logical change, Conventional Commit messages; merged to `develop` with `--no-ff` after the gate; `main` untouched; worktree removed; [state-log.md](../orchestration/obs/state-log.md) updated; lint clean; constitution genes respected (models, parallelism).
 - **Pass:** all checks.
