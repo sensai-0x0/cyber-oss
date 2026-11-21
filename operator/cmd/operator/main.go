@@ -14,6 +14,8 @@ import (
 
 	"github.com/metacogna/sentinel-hunter/enforcerd"
 	operatorcore "github.com/metacogna/sentinel-hunter/operator"
+
+	"github.com/metacogna/sentinel-hunter/hunterd/scope"
 )
 
 type wireAction struct {
@@ -42,7 +44,7 @@ func main() {
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: operator keygen -out-prefix KEY | operator review -key PRIVATE -decision approve|reject -operator NAME -ttl 15m [-policy PATH] [-ledger EXPORT.ndjson] < action.json")
+		return errors.New("usage: operator keygen -out-prefix KEY | operator review ... | operator scope sign|verify ...")
 	}
 	switch args[0] {
 	case "keygen":
@@ -58,10 +60,23 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(*prefix, private, 0o600); err != nil {
+		// SHR-010: a silent overwrite here destroys the trust root. Refuse instead.
+		if err := writeNewFile(*prefix, private, 0o600); err != nil {
 			return err
 		}
-		return os.WriteFile(*prefix+".pub", public, 0o644)
+		return writeNewFile(*prefix+".pub", public, 0o644)
+	case "scope":
+		if len(args) < 2 {
+			return errors.New("usage: operator scope sign -key PRIVATE -key-id ID < bundle.json | operator scope verify -key PUBLIC -key-id ID < signed.json")
+		}
+		switch args[1] {
+		case "sign":
+			return runScopeSign(args[2:], stdin, stdout)
+		case "verify":
+			return runScopeVerify(args[2:], stdin, stdout)
+		default:
+			return fmt.Errorf("unknown scope command %q", args[1])
+		}
 	case "review":
 		flags := flag.NewFlagSet("review", flag.ContinueOnError)
 		keyPath := flags.String("key", "", "Ed25519 private key")
@@ -139,6 +154,130 @@ func loadBreadth(path string) (enforcerd.Breadth, error) {
 	}
 	defer func() { _ = file.Close() }()
 	return enforcerd.ParseBreadth(file)
+}
+
+// writeNewFile refuses to overwrite an existing file (SHR-010): a silent truncate of a key
+// file destroys the trust root with no way back.
+func writeNewFile(path string, data []byte, mode os.FileMode) error {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, mode)
+	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("%s already exists; refusing to overwrite a key", path)
+		}
+		return err
+	}
+	defer func() { _ = file.Close() }()
+	_, err = file.Write(data)
+	return err
+}
+
+// wireScopeBundle is the unsigned CLI input/output shape for `scope sign`, matching
+// schemas/scope_bundle.v1.json minus key_id and signature, which the command supplies and
+// computes itself.
+type wireScopeBundle struct {
+	BundleID     string   `json:"bundle_id"`
+	EngagementID string   `json:"engagement_id"`
+	ScopeEpoch   uint64   `json:"scope_epoch"`
+	NotBefore    string   `json:"not_before"`
+	NotAfter     string   `json:"not_after"`
+	AuthRef      string   `json:"auth_ref"`
+	Targets      []string `json:"targets"`
+	Exclusions   []string `json:"exclusions,omitempty"`
+	Ports        []int    `json:"ports"`
+	ProbeKinds   []string `json:"probe_kinds"`
+	DomainWatch  []string `json:"domain_watchlist,omitempty"`
+	Rate         struct {
+		GlobalCPS       int `json:"global_cps"`
+		PerBlockCPS     int `json:"per_block_cps"`
+		PerIPPerMin     int `json:"per_ip_per_min"`
+		PerWorkerMaxCPS int `json:"per_worker_max_cps"`
+	} `json:"rate"`
+}
+
+func (w wireScopeBundle) toBundle() (scope.Bundle, error) {
+	notBefore, err := time.Parse(time.RFC3339, w.NotBefore)
+	if err != nil {
+		return scope.Bundle{}, fmt.Errorf("parse not_before: %w", err)
+	}
+	notAfter, err := time.Parse(time.RFC3339, w.NotAfter)
+	if err != nil {
+		return scope.Bundle{}, fmt.Errorf("parse not_after: %w", err)
+	}
+	return scope.Bundle{
+		BundleID: w.BundleID, EngagementID: w.EngagementID, ScopeEpoch: w.ScopeEpoch,
+		NotBefore: notBefore, NotAfter: notAfter, AuthRef: w.AuthRef,
+		Targets: w.Targets, Exclusions: w.Exclusions, Ports: w.Ports, ProbeKinds: w.ProbeKinds,
+		DomainWatchlist: w.DomainWatch,
+		Rate: scope.RateLimits{
+			GlobalCPS: w.Rate.GlobalCPS, PerBlockCPS: w.Rate.PerBlockCPS,
+			PerIPPerMin: w.Rate.PerIPPerMin, PerWorkerMaxCPS: w.Rate.PerWorkerMaxCPS,
+		},
+	}, nil
+}
+
+// runScopeSign reads an unsigned bundle as JSON on stdin and writes the signed bundle to
+// stdout. HC-2 (plans/fleet/README.md) decides who holds -key and how; this command only
+// signs what it is given.
+func runScopeSign(args []string, stdin io.Reader, stdout io.Writer) error {
+	flags := flag.NewFlagSet("scope sign", flag.ContinueOnError)
+	keyPath := flags.String("key", "", "Ed25519 private scope key")
+	keyID := flags.String("key-id", "", "key id recorded in the signed bundle")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if *keyID == "" {
+		return errors.New("-key-id is required")
+	}
+	private, err := os.ReadFile(*keyPath)
+	if err != nil {
+		return err
+	}
+	var input wireScopeBundle
+	if err := json.NewDecoder(stdin).Decode(&input); err != nil {
+		return err
+	}
+	bundle, err := input.toBundle()
+	if err != nil {
+		return err
+	}
+	signed, err := operatorcore.SignScope(ed25519.PrivateKey(private), *keyID, bundle)
+	if err != nil {
+		return err
+	}
+	_, err = stdout.Write(signed)
+	return err
+}
+
+// runScopeVerify reads a signed bundle as JSON on stdin and reports whether it verifies right
+// now against -key under -key-id. hunterd performs the authoritative check at startup; this
+// command exists so an operator can check a bundle before distributing it.
+func runScopeVerify(args []string, stdin io.Reader, stdout io.Writer) error {
+	flags := flag.NewFlagSet("scope verify", flag.ContinueOnError)
+	keyPath := flags.String("key", "", "Ed25519 public scope key")
+	keyID := flags.String("key-id", "", "key id the bundle must be signed with")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if *keyID == "" {
+		return errors.New("-key-id is required")
+	}
+	public, err := os.ReadFile(*keyPath)
+	if err != nil {
+		return err
+	}
+	raw, err := io.ReadAll(stdin)
+	if err != nil {
+		return err
+	}
+	keys := map[string]ed25519.PublicKey{*keyID: ed25519.PublicKey(public)}
+	bundle, err := scope.Parse(raw, keys, time.Now(), 0)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(stdout, "ok: bundle %s for engagement %s, epoch %d, valid %s to %s\n",
+		bundle.BundleID, bundle.EngagementID, bundle.ScopeEpoch,
+		bundle.NotBefore.Format(time.RFC3339), bundle.NotAfter.Format(time.RFC3339))
+	return err
 }
 
 func toWire(action enforcerd.Action) wireAction {

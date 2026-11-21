@@ -16,7 +16,7 @@
 | `mitigation-guardian` | Development (skill) | Claude, skill-scoped | Active | No — reviews/tests signing logic |
 | `lab-validator` | Development (skill) | Claude, skill-scoped | Active | No — lab-only, loopback |
 | `hunt-operator` | Development (skill) | Claude, skill-scoped | Active | No — orchestrates the other four skills |
-| Master Orchestrator | Development (meta) | Opus 5.5, top-level session | Active (process, not code) | No — merges to `develop` only |
+| Phase Runner | Development (meta) | Opus 5.5, top-level session | Active (process, not code) | No — merges to `develop` only |
 | Implementer / Test writer / Reviewer / Red-teamer / Scribe / Mutator | Development (subagents) | Haiku/Sonnet/Opus 5.5, per task | Active (process, not code) | No |
 
 The common thread, and the system's actual safety property: **every agent on this list, in every layer, is either incapable of reaching a production backend or is explicitly forbidden from merging/deploying without a human step.** Nothing here can sign an action, apply a firewall rule, or push to `main` on its own. See [05-safety-and-trust-model.md](05-safety-and-trust-model.md) for how that's enforced for the runtime agents, and [06-engineering-process.md](06-engineering-process.md) §2–3 for the development-side equivalent.
@@ -88,11 +88,11 @@ The shape of this graph *is* a safety statement: a schema or signature change mu
 
 ---
 
-## Layer 3 — Development-time orchestration subagents (`.agents/evals/orchestrator.md`)
+## Layer 3 — Development-time orchestration subagents (`.agents/evals/phase-runner.md`)
 
 A separate, higher-level process governs *how* the codebase gets built phase by phase. It is not code the product ships; it is the operating procedure for the Claude sessions doing the building.
 
-### Master Orchestrator
+### Phase Runner
 - **Who**: the top-level Claude session, run at the highest reasoning tier (Opus 5.5).
 - **Does**: plans phases (P0 Scaffold → P5 Harden), allocates each feature to a subagent per the constitution's genes, spawns subagents into isolated git worktrees, merges only gate-passing work into `develop`, and evolves the constitution's genome between phases based on measured fitness.
 - **Cannot do**: merge to `main`/`origin/main` without explicit human approval, touch more than one worktree at a time, or write feature code itself when a subagent could — this last point is a stated rule, not just a convention.

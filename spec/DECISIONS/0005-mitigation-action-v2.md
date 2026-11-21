@@ -30,7 +30,7 @@ Three facts in the code shape the design:
 - Go: `canonjson`, `enforcerd/breadth.go`, `enforcerd/verify_signature.go` (`canonicalV2`, `MinVersion`), `operator/evidence.go`, `operator/cmd/operator`.
 - Vectors: `schemas/mitigation_action.v2.golden.json`. Go and Python both assert it.
 - Integration-gate review (2026-11-20) tightened decision 4 before the merge into `develop`: the operator reads and verifies the **whole** export, not only through `ledger_seq`, and refuses a proposal that a later decision record (`proposal_seq`) has already closed; the cited record must match the action's `kind` and `broad` as well as its id and target; every display line is neutralised. On the Python side `policy.target` is now the bare form `classify_target` judged: scheme, a valid port and brackets removed, hostnames lower-cased, ranges masked to their network address and IP addresses written in Python's canonical form (so `10.0.0.5/24` becomes `10.0.0.0/24` and `::ffff:1.2.3.4` becomes `::ffff:102:304`); a target with an invalid port is refused, and IPv4-mapped and zoned targets follow `enforcerd.Breadth.Derive`, so Go never receives a proposal it would refuse.
-- Decisions 1 to 6 are implemented. The `MinVersion` cut-over is not scheduled until the merge into `develop` (decision 6, resolved question 2).
+- Decisions 1 to 6 are implemented. The `MinVersion` cut-over is scheduled for 2026-12-20, 30 days after the merge into `develop` on 2026-11-20 (decision 6, resolved question 2).
 
 ## Consequences
 

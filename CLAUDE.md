@@ -6,13 +6,13 @@
 
 The `.agents/` directory is **critical project context**, not optional documentation. Preserve it and consult its files to maintain continuity across sessions, agents, phases, evaluations, and decisions.
 
-`@.agents/evals/orchestrator.md` is the master orchestrator plan and directs the system's planning, delegation, integration, evaluation, state management, and constitution-evolution workflow. Read it at session start, then load the linked allocation, fitness, and state files it references before orchestrating work.
+`@.agents/evals/phase-runner.md` is the phase-runner plan and directs the system's planning, delegation, integration, evaluation, state management, and constitution-evolution workflow. Read it at session start, then load the linked allocation, fitness, and state files it references before orchestrating work.
 
 Read [.agents/go.md](.agents/go.md) before editing Go and [.agents/python-langgraph.md](.agents/python-langgraph.md) before editing Python. Write behavior and contract tests first, then make the smallest implementation change that satisfies them.
 
 Before writing or changing any document under `.agents/`, `plans/` or `spec/`, read [.agents/outline-method.md](.agents/outline-method.md). It defines the authority ladder, the provenance header, and the rule that every path named must exist or be marked `(planned)`. `uv run python .github/scripts/validate_outlines.py` enforces the mechanical parts.
 
-Multi-feature work runs through the `orchestrator` agent in `.claude/agents/`, with its skills in `.claude/skills/`. `.agents/skills/` is capped at five by `.github/scripts/validate_skills.py`; never add a sixth there.
+Multi-feature work runs through the `phase-runner` agent in `.claude/agents/`, with its skills in `.claude/skills/`. `.agents/skills/` is capped at five by `.github/scripts/validate_skills.py`; never add a sixth there.
 
 ## Idle agents
 
@@ -20,7 +20,7 @@ An agent with no assigned task does not wait and does not invent new surface are
 
 1. Run the verification list below and fix what fails.
 2. Run `validate_outlines.py` and clear outstanding errors, then warnings, in files no active feature owns.
-3. Work the error log in `.agents/orchestration/obs/errors.md` and the open questions in `.agents/orchestration/obs/state-log.md`, oldest first.
+3. Work the backlog register in `docs/backlog/backlog.md`, the error log in `.agents/orchestration/obs/errors.md` and the open questions in `.agents/orchestration/obs/state-log.md`, oldest first. Append to the backlog rather than carrying an item in conversation; the grammar is in `docs/backlog/README.md`.
 4. Close gaps between a documented invariant and its implementation — several invariants in `.agents/orchestration/invariants.md` currently have no enforcement point, recorded in `spec/DECISIONS/0003-architecture-authority.md`.
 5. Add the missing test before the fix, never after.
 

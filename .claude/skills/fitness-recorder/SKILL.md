@@ -22,7 +22,7 @@ and never past a protected clause.
    `{id, pass, score, details, commit}`. An eval whose target path does not exist is
    recorded as **absent**, never as a pass. Absent hard gates are reported to the human.
 3. **Compute fitness** with the weighted formula in
-   [.agents/evals/orchestrator.md](../../../.agents/evals/orchestrator.md) §6. Fitness is
+   [.agents/evals/phase-runner.md](../../../.agents/evals/phase-runner.md) §6. Fitness is
    zero if any hard-gate eval fails, or if `main` was touched.
 4. **Mutation round.** Propose the number of variants the plan specifies, each changing
    one or two genes, each with a hypothesis tied to evidence in the state log — "retries

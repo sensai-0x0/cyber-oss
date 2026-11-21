@@ -176,11 +176,11 @@ func TestMinVersionRefusesV1AfterCutOver(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	window := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth}
+	window := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth, Now: fixedClock}
 	if err := window.Apply(context.Background(), v1); err != nil {
 		t.Fatalf("v1 refused during the window: %v", err)
 	}
-	cut := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth, MinVersion: "v2"}
+	cut := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth, MinVersion: "v2", Now: fixedClock}
 	if err := cut.Apply(context.Background(), v1); !errors.Is(err, ErrVersionTooOld) {
 		t.Fatalf("v1 after cut-over err = %v", err)
 	}
@@ -197,7 +197,7 @@ func TestUnknownMinVersionFailsClosed(t *testing.T) {
 	if err := SignAction(private, &a); err != nil {
 		t.Fatal(err)
 	}
-	signed := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth, MinVersion: "V2"}
+	signed := SignedBackend{PublicKey: public, Backend: backend, Breadth: testBreadth, MinVersion: "V2", Now: fixedClock}
 	if signed.Apply(context.Background(), a) == nil || backend.applied != 0 {
 		t.Fatal("a mistyped MinVersion let a v1 action through")
 	}

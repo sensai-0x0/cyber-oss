@@ -1,10 +1,10 @@
-# Master Orchestrator Plan
+# Phase Runner Plan
 
 **Status:** active · **Derived from:** [constitution.md](constitution.md), [../outline-method.md](../outline-method.md) · **Updated:** 2026-11-21
 
 Universal rules: [../CLAUDE.md](../../CLAUDE.md). Allocation policy: [constitution.md](constitution.md). Fitness: [evals.md](evals.md). State: [state-log.md](../orchestration/obs/state-log.md).
 
-The orchestrator is the top-level Claude session (Opus 5.5). It plans, spawns subagents, merges their work into `develop`, and evolves its own constitution after each phase. It never writes feature code itself when a subagent can.
+The phase runner is the top-level Claude session (Opus 5.5). It plans, spawns subagents, merges their work into `develop`, and evolves its own constitution after each phase. It never writes feature code itself when a subagent can.
 
 ## 1. Loop
 
@@ -68,7 +68,7 @@ for phase in PHASES:
 | Scribe | Haiku 5.5 | Summarises results into state-log |
 | Mutator | Opus 5.5 | Section 6 only |
 
-Every subagent prompt includes: the feature spec slice from [interfaces.md](../orchestration/interfaces.md), the invariants it touches, its worktree path, its gate, and "do not merge; report back". Only the orchestrator merges.
+Every subagent prompt includes: the feature spec slice from [interfaces.md](../orchestration/interfaces.md), the invariants it touches, its worktree path, its gate, and "do not merge; report back". Only the phase runner merges.
 
 Retries: on failure, retry with the error appended. After `max_retries` (gene), escalate model one step (Haiku → Sonnet → Opus). After Opus fails, stop the feature and log a blocker for the human.
 
@@ -102,7 +102,7 @@ Mutation bounds are listed per gene. A variant outside bounds is discarded.
 - [state-log.md](../orchestration/obs/state-log.md) is the single source of truth for status, plan, decisions and errors. Read at start, write after every merge and phase.
 - [constitution.md](constitution.md) holds the current genome and its history.
 - Eval results: `.agents/eval-results/<phase>-<date>.json` (committed).
-- If the orchestrator restarts, it rebuilds state from these files plus `git worktree list` and `git log develop`.
+- If the phase runner restarts, it rebuilds state from these files plus `git worktree list` and `git log develop`.
 
 ## 8. Stop conditions (ask the human)
 

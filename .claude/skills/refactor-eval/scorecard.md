@@ -23,6 +23,16 @@ Ledger for `refactor-eval`. One row per candidate, appended — never rewritten.
 | 2026-11-21 | `orchestrator/policy.py:88` dead `_legacy_policy` | 38 | 3 | 1 | 0 | 0 | 0 | 63 | Low | done | n/a | `uv run pytest orchestrator -q` |
 | 2026-11-21 | `enforcerd/nft/rule.go:40` extract `Rule` interface | 6 | 2 | 0 | 0 | 1 | 1 | −19 | Medium | reject | n/a | n/a |
 
+## Recorded candidates
+
+| Date | Candidate (file:line) | `L` | `B` | `I` | `U` | `A` | `N` | `S` | Flag | Verdict | Approved by / date | Evidence |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-21 | rename `orchestrator/` to `triage/` (whole package) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | Critical | reject | — | n/a — rejected before any edit |
+| 2026-11-21 | extract `routers.py` from `orchestrator/score.py`, `policy.py` | 0 | 0 | 0 | 0 | 0 | 1 | −20 | High | reject | — | n/a — as a move; the same file is accepted as new-code placement in `plans/agent-graph.md` §11.3 |
+| 2026-11-21 | move `provenance.py`, `ledger.py`, `action.py`, `campaign.py` into subpackages | 0 | 0 | 0 | 0 | 0 | 4 | −80 | High | reject | — | n/a — rejected before any edit |
+
+Reasoning and the consequences for new modules: `plans/agent-graph.md` §11.
+
 ## Using it in a permission request
 
 Critical and High rows are what the human is being asked about. Present exactly those, most valuable first, with the `Why` column filled from the single flag reason that matched — not from a paragraph of justification.
