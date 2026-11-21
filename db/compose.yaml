@@ -1,0 +1,30 @@
+name: sentinel-hunter-graphdb
+
+# Temporal knowledge-graph backend for agent/orchestration memory (db/CLAUDE.md).
+# Loopback-only by design: Graphiti's reference stack has no built-in auth
+# (db/CONFIG.md risk register), so this port must never be published beyond
+# 127.0.0.1. falkordb-server (not falkordb/falkordb) is used deliberately to
+# exclude the bundled browser UI, which this deployment does not need exposed.
+#
+# Run from the repo root: docker compose -f db/compose.yaml --env-file .env up -d
+
+services:
+  falkordb:
+    image: falkordb/falkordb-server:v4.22.4-alpine
+    ports:
+      - "127.0.0.1:${FALKORDB_PORT:-6379}:6379"
+    environment:
+      # THREAD_COUNT and TIMEOUT_MAX are FalkorDB module load-time args; they can
+      # only be set here, not via GRAPH.CONFIG SET at runtime.
+      FALKORDB_ARGS: "THREAD_COUNT ${FALKORDB_THREAD_COUNT:-2} TIMEOUT_MAX ${FALKORDB_TIMEOUT_MS:-5000}"
+    volumes:
+      - falkordb-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  falkordb-data:

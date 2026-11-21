@@ -1,3 +1,4 @@
+.env
 .cache/
 .venv/
 __pycache__/
@@ -9,6 +10,7 @@ __pycache__/
 /operator-bin
 *.db/
 .coverage
+coverage.xml
 deploy/certs/generated/
 *.key
 *.csr
@@ -16,5 +18,8 @@ deploy/certs/generated/
 checkpoints/
 .worktrees/
 *.env
+db/audit.sqlite3
+db/audit.sqlite3-*
 *.sqlite
 .claude/worktrees/*
+*.cache*
