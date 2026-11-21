@@ -1,6 +1,8 @@
-**Status:** proposed · **Derived from:** [`db/CLAUDE.md`](../db/CLAUDE.md), [`db/DATA_MODEL.md`](../db/DATA_MODEL.md), [`db/CONTAINER_CONFIG.md`](../db/CONTAINER_CONFIG.md), [`plans/DATA_MODEL.md`](../plans/DATA_MODEL.md), [`plans/graph-store/README.md`](../plans/graph-store/README.md), [`plans/ml-add/README.md`](../plans/ml-add/README.md), [`plans/fleet/README.md`](../plans/fleet/README.md), [`spec/STATE.md`](../spec/STATE.md), [ADR 0004 graph memory](../spec/DECISIONS/0004-graph-memory-is-not-the-security-pipeline.md), [ADR 0004 campaign ledger](../spec/DECISIONS/0004-campaign-belief-ledger.md), [ADR 0007](../spec/DECISIONS/0007-fleet-command-path.md), [`.agents/orchestration/invariants.md`](../.agents/orchestration/invariants.md) · **Updated:** 2026-11-21
+**Status:** proposed · **Derived from:** [`docs/08-storage-architecture.md`](08-storage-architecture.md), [`plans/DATA_MODEL.md`](../plans/DATA_MODEL.md), [`plans/graph-store/README.md`](../plans/graph-store/README.md), [`plans/ml-add/README.md`](../plans/ml-add/README.md), [`plans/fleet/README.md`](../plans/fleet/README.md), [`spec/STATE.md`](../spec/STATE.md), ADR 0004-graph-memory *(not on `main`)*, [ADR 0004 campaign ledger](../spec/DECISIONS/0004-campaign-belief-ledger.md), [ADR 0007](../spec/DECISIONS/0007-fleet-command-path.md), [`db/CONFIG.md`](../db/CONFIG.md), [`db/INSTALL.md`](../db/INSTALL.md), [`.agents/orchestration/invariants.md`](../.agents/orchestration/invariants.md) · **Updated:** 2026-11-21
 
-This document is prescriptive on purpose: it states what each store **must** do and how the components **must** interact, so that the statements can be lifted into `plans/storage/` and one ADR per open decision without being re-derived. It grants no authority. Per [outline-method.md §1](../.agents/outline-method.md), a `docs/` document is rank 5 narrative; a "must" here is a proposed requirement, not an instruction an agent may execute. [`docs/08-storage-architecture.md`](08-storage-architecture.md) explains *what exists and why*; this file specifies *what the target design is and in what order it is built*.
+This document is prescriptive on purpose: it states what each store **must** do and how the components **must** interact, so that the statements can be lifted into `plans/storage/` *(planned)* and one ADR per open decision without being re-derived. It grants no authority. Per [outline-method.md §1](../.agents/outline-method.md), a `docs/` document is rank 5 narrative; a "must" here is a proposed requirement, not an instruction an agent may execute. [`docs/08-storage-architecture.md`](08-storage-architecture.md) explains *what exists and why*; this file specifies *what the target design is and in what order it is built*.
+
+**Tree note.** The Role A implementation files under `db/` — its client, audit module, ontology config and compose file — were present in the working tree this design was derived from, but are **not tracked on `main` at this revision**. They are marked *(not on `main`)* below: they describe the design to restore, not code that currently exists. The same applies to `db/CONTAINER_CONFIG.md` *(not on `main`)* and to the graph-memory ADR. Nothing in this document should be read as a claim that those files are present.
 
 The graph database is **FalkorDB**. (In conversation it is sometimes written "FalkenDB"; there is no separate product by that name in this repository.) **Graphiti** is not a database: it is the Python library that turns an ingested episode into typed entities and edges in FalkorDB, maintains temporal validity, and serves hybrid search over them. Every sentence below that says "the graph" means the FalkorDB server; every sentence that says "Graphiti" means the extraction and query library in front of it.
 
@@ -57,8 +59,8 @@ Every store that exists or is proposed, with its single role. "Status" uses the 
 | 3 | Evidence ledger | SQLite (WAL) | Decision | Append-only, hash-chained record of every triage decision and every challenger score | `orchestrator/ledger.py` | What was decided, with what evidence, and in what order | accepted |
 | 4 | Campaign posteriors | SQLite | Challenger | Per-campaign log-odds state for the shadow scorer | `orchestrator/campaign.py` | Campaign identity and posterior, shadow only | accepted |
 | 5 | LangGraph checkpoints | SQLite or Postgres | Execution | Lets a pending `interrupt()` survive a process restart | `orchestrator/graph.py` | In-flight graph state, not the decision | open (HC-4); SQLite helper exists |
-| 6 | Dev-memory graph | FalkorDB + Graphiti | Dev memory | Lets a development session remember `WorkBlock` dependencies and failures | `db/graph_client.py` | Derived projection of the dev-memory audit log | accepted (Role A) |
-| 7 | Dev-memory audit log | SQLite | Dev memory | Verbatim episode payloads for replay and audit of Role A | `db/audit.py` | Every Role A episode as sent | accepted |
+| 6 | Dev-memory graph | FalkorDB + Graphiti | Dev memory | Lets a development session remember `WorkBlock` dependencies and failures | `db/graph_client.py` *(not on `main`)* | Derived projection of the dev-memory audit log | accepted design; code absent from `main` |
+| 7 | Dev-memory audit log | SQLite | Dev memory | Verbatim episode payloads for replay and audit of Role A | `db/audit.py` *(not on `main`)* | Every Role A episode as sent | accepted design; code absent from `main` |
 | 8 | Hunting-analysis graph | FalkorDB + Graphiti | Analysis | Read side channel over past decisions for human analysis | `orchestrator/graph_replay.py` *(planned)* | Derived projection of the evidence ledger | proposed, blocked on ADR 0006 |
 | 9 | Lab event bus | NATS (TLS, password) | Transport | Carries events between lab fixtures and the orchestrator | `hunterd` publishes, `orchestrator` consumes | Nothing durable | accepted (lab only) |
 | 10 | Fleet streams | NATS JetStream (`DELTA`, `OBS.*`, `PROBE_REQ`, `AUDIT`) | Transport | Durable, at-least-once transport at fleet scale | `hunterd` publishes, `orchestrator` consumes | Delivery, not the decision | proposed (fleet phases 6–7) |
@@ -66,7 +68,7 @@ Every store that exists or is proposed, with its single role. "Status" uses the 
 | 12 | Baseline snapshots | Object storage (provider `[U]`) | Cold recovery | Restores a durable node whose Fly Volume is lost or corrupt | durable `hunterd` node *(planned)* | A point-in-time copy, never live state | proposed |
 | 13 | Process bookkeeping | Markdown under `.agents/` | Documentation | Evals, state log, constitution history | agents and humans | Process history | accepted, non-runtime |
 
-**Not storage, and must not be treated as such:** `orchestrator/policy.yaml`, `db/config.yaml`, signed scope bundles *(planned)* and `mission.yaml` are read-only configuration. They shape behaviour; they are not mutated by the runtime. `agent-graph/` is untracked scratch code and is not part of this design.
+**Not storage, and must not be treated as such:** `orchestrator/policy.yaml`, `db/config.yaml` *(not on `main`)*, signed scope bundles *(planned)* and `mission.yaml` *(absent)* are read-only configuration. They shape behaviour; they are not mutated by the runtime. `agent-graph/` is untracked scratch code and is not part of this design.
 
 **Explicitly rejected stores.** Neo4j (the FalkorDB path is the accepted one; `.env.example` keeps a Neo4j block only for upstream Graphiti parity), a graph MCP/REST server, a document database for the audit log, and any second SQLite file whose rows could be a view over the ledger. Adding any of these requires the same review as adding a store in §2.
 
@@ -194,16 +196,16 @@ Each plane below is a contract: who may write, what the key is, what order is re
 
 **Purpose.** Let an agent working *on this repository* recall what a prior session did: which `WorkBlock` ran in which worktree, what `FailurePattern` blocked it, and what depends on what. It is bookkeeping for the development process, not a runtime security component (ADR 0004-graph-memory).
 
-**Ontology (fixed in `db/config.yaml`).** Entities `WorkBlock`, `Worktree`, `FailurePattern`; edges `DEPENDS_ON`, `ENCOUNTERED_FAILURE`. Extending it requires an edit to `db/config.yaml` plus a recorded decision, never an ad-hoc type in code or a prompt.
+**Ontology (fixed in `db/config.yaml` *(not on `main`)*).** Entities `WorkBlock`, `Worktree`, `FailurePattern`; edges `DEPENDS_ON`, `ENCOUNTERED_FAILURE`. Extending it requires an edit to that ontology file plus a recorded decision, never an ad-hoc type in code or a prompt.
 
 **Write path (strict order).**
 
 1. Build one JSON episode of kind `WORK_BLOCK_COMPLETED` or `WORK_BLOCK_BLOCKED` using `build_episode_body`, which stamps the episode type and truncates every string field.
-2. `db/audit.record_episode` writes the exact payload with status `pending`.
+2. `db/audit.record_episode` *(module not on `main`)* writes the exact payload with status `pending`.
 3. `add_work_block_episode` calls Graphiti with `EpisodeType.json`.
-4. `db/audit.mark_graph_write_status` flips the row to `committed` or `failed`.
+4. `db/audit.mark_graph_write_status` *(module not on `main`)* flips the row to `committed` or `failed`.
 
-A crash between 2 and 4 leaves a `pending` row, which is the intended recovery handle. There is no direct Cypher and no second caller of `graphiti_core`; `db/graph_client.py` is the only module that constructs a Graphiti client for this role.
+A crash between 2 and 4 leaves a `pending` row, which is the intended recovery handle. There is no direct Cypher and no second caller of `graphiti_core`; `db/graph_client.py` *(not on `main`)* is the only module that constructs a Graphiti client for this role.
 
 **Read path.** `search_graph` always passes the configured `group_id`. A query with the wrong group silently returns nothing, so the group id is treated as part of the schema: `sentinel_lite_main` for Role A.
 
@@ -219,9 +221,9 @@ A crash between 2 and 4 leaves a `pending` row, which is the intended recovery h
 
 **Purpose.** Answer relationship questions over **past** decisions after they were made: which targets share indicators, which indicators cluster into a campaign, which decisions touched which cluster. It is never consulted between an event and a mitigation.
 
-**Status.** Proposed and blocked. `spec/DECISIONS/0006-graph-store.md` does not exist; the number is reserved. [Phase 0](../plans/graph-store/Phase-0.md) may legitimately end in "do not build" if no named consumer appears.
+**Status.** Proposed and blocked. `spec/DECISIONS/0006-graph-store.md` *(planned)* does not exist; the number is reserved. [Phase 0](../plans/graph-store/Phase-0.md) may legitimately end in "do not build" if no named consumer appears.
 
-**Ontology (candidate).** Entities `Target`, `Indicator`, `Campaign`, `Decision`; edges `OBSERVED_WITH`, `CLUSTERED_WITH`, `DECIDED`. Final shape requires ADR 0006 and a `db/config.yaml`-style ontology file of its own.
+**Ontology (candidate).** Entities `Target`, `Indicator`, `Campaign`, `Decision`; edges `OBSERVED_WITH`, `CLUSTERED_WITH`, `DECIDED`. Final shape requires ADR 0006 and a Role A-style ontology file of its own *(planned)*.
 
 **Ingestion path.**
 
@@ -475,13 +477,13 @@ The current container stack sets `GRAPH_REQUIRED: "true"`, makes the orchestrato
 
 ## 8. Provisioning and namespace map
 
-Three FalkorDB definitions already exist. They serve different planes and must be named as such, not treated as duplicates to delete.
+Three FalkorDB definitions appear across the repository — one in the Role A specification and two in the deployment stacks. They serve different planes and must be named as such, not treated as duplicates to delete.
 
 | Stack | Compose file / service | Role | Auth | Network / port | Volume | Namespace |
 |---|---|---|---|---|---|---|
-| Developer graph | `db/compose.yaml` / `falkordb` | Role A dev memory | none | loopback `127.0.0.1:6379` | `falkordb-data` (project `sentinel-hunter-graphdb`) | `FALKORDB_DATABASE=sentinel_lite`, `GRAPHITI_GROUP_ID=sentinel_lite_main` |
+| Developer graph | `db/compose.yaml` *(not on `main`)* / `falkordb` | Role A dev memory | none | loopback `127.0.0.1:6379` | `falkordb-data` (project `sentinel-hunter-graphdb`) | `FALKORDB_DATABASE=sentinel_lite`, `GRAPHITI_GROUP_ID=sentinel_lite_main` |
 | Analysis graph (proposed) | `deploy/compose.yaml` / `falkordb`, profile `graph` | Role B analysis | password | `graphnet` (`internal: true`), no host port | `falkordb-data` (project `sentinel-hunter-lab`) | `FALKORDB_DATABASE=hunting_analysis` *(planned)*, `GRAPHITI_GROUP_ID=hunt_<bundle-prefix>` *(planned)* |
-| Container graph | `deploy/container/compose.yaml` / `falkordb` | **must be Role B only** | password | `sentinel-graph` (`internal: true`), debug port `127.0.0.1:16379` | `sentinel-hunter-container_falkordb-data` | same as analysis, distinct per engagement |
+| Container graph | `deploy/container/compose.yaml` *(not on `main` at this revision)* / `falkordb` | **must be Role B only** | password | `sentinel-graph` (`internal: true`), debug port `127.0.0.1:16379` | `sentinel-hunter-container_falkordb-data` | same as analysis, distinct per engagement |
 
 **Prescriptions.**
 
@@ -512,7 +514,7 @@ Three FalkorDB definitions already exist. They serve different planes and must b
 | Network exposure | Loopback or `internal: true` only; no public port for any store; the analysis graph has no host port at all |
 | Graph auth | Password in the container/analysis stacks; Role A is loopback-only and unauthenticated by design, which is acceptable only because it is unreachable off-host |
 | MCP/REST | Never deploy Graphiti's reference MCP or REST server; the library is embedded |
-| Credentials | Environment or generated `.env` only; never committed; `deploy/container/init-env.sh` refuses to overwrite |
+| Credentials | Environment or generated `.env` only; never committed; the container-plane init script *(not on `main` at this revision)* refuses to overwrite |
 | Telemetry | `GRAPHITI_TELEMETRY_ENABLED=false` in every stack |
 | Prompt injection | JSON episodes only; allowlist and truncate every string before it reaches an extraction LLM; never ingest raw banners or logs |
 | Role A audit payload | Stores the exact string **after** `build_episode_body` truncation — replayable, not forensic-full; a fuller capture would need a separate, explicitly approved store |
@@ -521,7 +523,7 @@ Three FalkorDB definitions already exist. They serve different planes and must b
 | Badger | Local disk only; never a network mount; never opened by Python |
 | Retention | Each store's retention is declared in §10 and implemented as a bound, not a hope |
 
-**The loopback guard is role-specific.** `db/graph_client.load_graph_config` refuses any host that is not `127.0.0.1` or `localhost`. That is correct for Role A and wrong for a client inside the container plane reaching the service name `falkordb`. The plan must not weaken the single guard. It introduces a separate Role B configuration loader that accepts only an allowlisted internal hostname, requires a password, and is constructible only when an explicit container flag is set. Role A keeps the loopback-only loader unchanged. See [`db/CONTAINER_CONFIG.md`](../db/CONTAINER_CONFIG.md) for the three options and why relaxing the shared guard is the worst of them.
+**The loopback guard is role-specific.** The Role A loader (`db/graph_client.load_graph_config` *(module not on `main`)*) refuses any host that is not `127.0.0.1` or `localhost`. That is correct for Role A and wrong for a client inside the container plane reaching the service name `falkordb`. The plan must not weaken the single guard. It introduces a separate Role B configuration loader that accepts only an allowlisted internal hostname, requires a password, and is constructible only when an explicit container flag is set. Role A keeps the loopback-only loader unchanged. The container-plane notes in the Role A specification *(not on `main`)* set out the three options and why relaxing the shared guard is the worst of them.
 
 ---
 
@@ -555,7 +557,7 @@ Three FalkorDB definitions already exist. They serve different planes and must b
 | Add a store | Amend §2 and §4 here; add the writer and authority; add an ADR if it touches the decision or trust boundary |
 | Change a store's authority | ADR first; the old authority is demoted in the same change; replay/rebuild proven before cutover |
 | Change a cross-language payload | `schemas/` version bump + ADR + `contract-steward` |
-| Change the Role A ontology | `db/config.yaml` + recorded decision; never an ad-hoc type |
+| Change the Role A ontology | `db/config.yaml` *(not on `main`)* + recorded decision; never an ad-hoc type |
 | Change the Role B ontology | ADR 0006 + a Role B ontology file of its own |
 | Change a `group_id`, database or volume | Treat as a migration: dual-write is forbidden; rebuild into the new namespace and cut over |
 | Change a threshold | `orchestrator/policy.yaml` only; cite the key elsewhere |
@@ -569,7 +571,7 @@ Three FalkorDB definitions already exist. They serve different planes and must b
 
 | ID | Decision | Blocks | Evidence required | May end in "no" |
 |---|---|---|---|---|
-| OD-1 | Role B consumer and ontology (`spec/DECISIONS/0006-graph-store.md`) | Any Role B build | Named consumer; comparison against the ledger alone; pinned versions and licences; model and embedder | Yes — Phase 0 explicitly allows "do not build" |
+| OD-1 | Role B consumer and ontology (`spec/DECISIONS/0006-graph-store.md` *(planned)*) | Any Role B build | Named consumer; comparison against the ledger alone; pinned versions and licences; model and embedder | Yes — Phase 0 explicitly allows "do not build" |
 | OD-2 | Durable checkpointer backend (HC-4) | Fleet phase 6; any broad-action queue | SQLite vs Postgres against the criteria in §4.4 | No; one must be chosen |
 | OD-3 | Role B LLM egress and data classes | Enabling the `graph` profile | Allowed host, provider, model, retention, budget, human checkpoint | Yes |
 | OD-4 | Fleet storage authority cutover (Badger cursor → KV lease) | Fleet phase 4 | Migration procedure and a test that both are never authoritative | No |
@@ -582,7 +584,7 @@ Three FalkorDB definitions already exist. They serve different planes and must b
 
 ## 13. Promotion plan
 
-This is the skeleton to lift into `plans/storage/` once the open decisions above have owners. It does not authorize the work; it orders it so each step leaves `develop` green and can be reverted independently.
+This is the skeleton to lift into `plans/storage/` *(planned)* once the open decisions above have owners. It does not authorize the work; it orders it so each step leaves `develop` green and can be reverted independently.
 
 | Phase | Outcome | Depends on | Key acceptance |
 |---|---|---|---|
@@ -593,7 +595,7 @@ This is the skeleton to lift into `plans/storage/` once the open decisions above
 | **S4 — Separate Role B from the runtime** | Dedicated Role B loader, namespace, watermark and replay worker; no consumer, no build | OD-1, OD-3 | Replay from zero is idempotent; graph down changes no decision |
 | **S5 — Fleet storage** | NATS KV leases and grants, JetStream streams, outbox, ack-after-commit | OD-4 | Budget conservation, no loss, no dual authority |
 | **S6 — Cold recovery** | Object storage, snapshot ordering, restore runbook and drill | OD-5 | Restore produces a verified ledger and a rebuilt derived store |
-| **S7 — Promote the plan** | Move this content into `plans/storage/`, one ADR per decision, update `spec/STATE.md` | S0–S6 | `validate_outlines.py --strict` passes |
+| **S7 — Promote the plan** | Move this content into `plans/storage/` *(planned)*, one ADR per decision, update `spec/STATE.md` | S0–S6 | `validate_outlines.py --strict` passes |
 
 **Rules for every phase.** One branch from `develop`; tests before code; no new threshold outside `policy.yaml`; no phase enables a store whose authority and rebuild source are not written down; every merge appends to `.agents/orchestration/obs/state-log.md`.
 
@@ -626,8 +628,8 @@ The design is promotable when all of the following are true:
 | Decision | `orchestrator/ledger.py` | `record_hash`, `Ledger.append`, `Ledger.records`, `verify_chain`, `build_record_fields`, `run_challengers`, `make_record_node` | accepted |
 | Challenger | `orchestrator/campaign.py` | `observe`, `score`, `reset`, `campaign_count` | accepted |
 | Execution | `orchestrator/graph.py` | `build_graph`, `build_sqlite_checkpointer` | partial |
-| Dev memory | `db/graph_client.py` | `load_graph_config`, `build_graphiti`, `init_graph`, `build_episode_body`, `add_work_block_episode`, `search_graph` | accepted |
-| Dev memory | `db/audit.py` | `record_episode`, `mark_graph_write_status`, `pending_episodes` | accepted |
+| Dev memory | `db/graph_client.py` *(not on `main`)* | `load_graph_config`, `build_graphiti`, `init_graph`, `build_episode_body`, `add_work_block_episode`, `search_graph` | accepted design; code absent |
+| Dev memory | `db/audit.py` *(not on `main`)* | `record_episode`, `mark_graph_write_status`, `pending_episodes` | accepted design; code absent |
 | Analysis | `orchestrator/graph_replay.py` *(planned)* | watermark read, episode build, idempotent submit | proposed |
 | Analysis | `orchestrator/graph_ontology.py` *(planned)* | Role B entity/edge map | proposed |
 | Transport | `orchestrator/ingest.py` *(planned)* | pull consumer, ack after commit | proposed |
@@ -637,13 +639,13 @@ The design is promotable when all of the following are true:
 
 | Variable | Used by | Role | Notes |
 |---|---|---|---|
-| `FALKORDB_HOST` / `FALKORDB_PORT` | `db/graph_client.py`, `orchestrator/service.py` | Role A / Role B | Role A loopback only; Role B internal service name |
+| `FALKORDB_HOST` / `FALKORDB_PORT` | `db/graph_client.py` *(not on `main`)*, `orchestrator/service.py` *(not on `main` at this revision)* | Role A / Role B | Role A loopback only; Role B internal service name |
 | `FALKORDB_PASSWORD` | container/analysis stacks | Role B | required there; absent in Role A |
 | `FALKORDB_DATABASE` | Graphiti driver | both | must differ per role |
 | `GRAPHITI_GROUP_ID` | `add_episode`, `search` | both | must differ per role; Role B is per engagement |
 | `GRAPHITI_MAX_COROUTINES` | Graphiti | both | caps extraction concurrency |
 | `GRAPHITI_TELEMETRY_ENABLED` | Graphiti | both | always `false` |
-| `GRAPH_REQUIRED` | `orchestrator/service.py` | readiness | **must default to false**; analysis status is reported separately |
+| `GRAPH_REQUIRED` | `orchestrator/service.py` *(not on `main` at this revision)* | readiness | **must default to false**; analysis status is reported separately |
 | `LLM_PROVIDER`, `MODEL_NAME`, embedder keys | Graphiti extraction | both | role-specific; never committed |
 | `LEDGER_*`, `CHECKPOINT_*` *(planned)* | orchestrator | decision/execution | paths and retention are deployment config |
 
