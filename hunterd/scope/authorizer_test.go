@@ -91,6 +91,21 @@ func TestCheckHostLiteralIP(t *testing.T) {
 	}
 }
 
+// Regression: an exclusion written in IPv4-mapped-IPv6 notation must still deny the plain IPv4
+// address it names (I5). Before unmapPrefix, "::ffff:203.0.113.150/128" built a /128 prefix in
+// the 4-in-6 address family, which a plain "203.0.113.150" (the form a real dial or DNS answer
+// produces) never matches, so the exclusion silently never fired.
+func TestCheckRejectsIPv4MappedIPv6Exclusion(t *testing.T) {
+	bundle := Bundle{
+		Targets: []string{"203.0.113.0/24"}, Exclusions: []string{"::ffff:203.0.113.150/128"},
+		Ports: []int{443}, ProbeKinds: []string{"tls"},
+	}
+	a := newTestAuthorizer(t, bundle, nil)
+	if err := a.Check(netip.MustParseAddr("203.0.113.150"), 443, KindTLS); !errors.Is(err, ErrOutOfScope) {
+		t.Fatalf("got %v, want ErrOutOfScope: the 4-in-6 exclusion did not deny the plain IPv4 address", err)
+	}
+}
+
 func TestCheckHostBracketedIPv6Literal(t *testing.T) {
 	bundle := cidrBundle()
 	bundle.Targets = []string{"2001:db8::/32"}

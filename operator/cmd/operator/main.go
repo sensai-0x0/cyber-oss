@@ -240,7 +240,7 @@ func runScopeSign(args []string, stdin io.Reader, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	signed, err := scope.Sign(ed25519.PrivateKey(private), *keyID, bundle)
+	signed, err := operatorcore.SignScope(ed25519.PrivateKey(private), *keyID, bundle)
 	if err != nil {
 		return err
 	}

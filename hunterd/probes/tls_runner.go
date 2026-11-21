@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 	"time"
 
 	"github.com/projectdiscovery/fastdialer/fastdialer"
@@ -82,7 +81,7 @@ func (r *TLSRunner) Probe(ctx context.Context, host, ip, port string) (Observati
 	if dialHost == "" {
 		dialHost = host
 	}
-	authorizedPort, err := parseAuthorizedPort(dialPort)
+	authorizedPort, err := scope.ParsePort(dialPort)
 	if err != nil {
 		return Observation{}, err
 	}
@@ -94,14 +93,6 @@ func (r *TLSRunner) Probe(ctx context.Context, host, ip, port string) (Observati
 		return Observation{}, fmt.Errorf("tlsx probe: %w", err)
 	}
 	return normalizeTLSResponse(response), nil
-}
-
-func parseAuthorizedPort(raw string) (uint16, error) {
-	port, err := strconv.ParseUint(raw, 10, 16)
-	if err != nil {
-		return 0, fmt.Errorf("tls runner: invalid port %q: %w", raw, err)
-	}
-	return uint16(port), nil
 }
 
 func (r *TLSRunner) Close() {

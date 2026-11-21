@@ -108,7 +108,9 @@ func Parse(raw []byte, keys map[string]ed25519.PublicKey, now time.Time, minEpoc
 		return Bundle{}, ErrInvalidSignature
 	}
 	publicKey, known := keys[wire.KeyID]
-	if !known {
+	if !known || len(publicKey) != ed25519.PublicKeySize {
+		// ed25519.Verify panics on a wrong-length key rather than returning false; a corrupt or
+		// mis-generated key file in the caller's map must fail closed here, not crash Parse.
 		return Bundle{}, fmt.Errorf("%w: unknown key id %q", ErrInvalidSignature, wire.KeyID)
 	}
 	signature, err := base64.StdEncoding.DecodeString(wire.Signature)
@@ -153,19 +155,31 @@ func Parse(raw []byte, keys map[string]ed25519.PublicKey, now time.Time, minEpoc
 	}, nil
 }
 
-// Sign builds a wire bundle from b, computes its canonical signature over every field except
-// Signature, and returns the signed JSON bytes. b.Signature is ignored on input. Used by the
-// `operator scope sign` CLI and by tests; hunterd never signs, only verifies.
-func Sign(privateKey ed25519.PrivateKey, keyID string, b Bundle) ([]byte, error) {
-	if len(privateKey) != ed25519.PrivateKeySize {
-		return nil, errors.New("scope: invalid Ed25519 private key")
-	}
+// CanonicalBytes returns the exact bytes a signature over b (under keyID) must cover. hunterd
+// never signs, only verifies (hunterd/CLAUDE.md); this lets a signer elsewhere (operator) build
+// the bytes to pass to ed25519.Sign without this package performing the signing call itself.
+func CanonicalBytes(keyID string, b Bundle) ([]byte, error) {
 	if len(b.Targets) == 0 {
 		return nil, ErrEmptyScope
 	}
 	if keyID == "" {
 		return nil, errors.New("scope: key id is required")
 	}
+	return canonicalBundle(toWire(keyID, b))
+}
+
+// Assemble attaches a computed signature to b under keyID and returns the signed wire JSON.
+// Callers get the bytes to sign from CanonicalBytes with the same keyID and Bundle first.
+func Assemble(keyID string, b Bundle, signature []byte) ([]byte, error) {
+	if len(signature) != ed25519.SignatureSize {
+		return nil, errors.New("scope: signature has the wrong length")
+	}
+	wire := toWire(keyID, b)
+	wire.Signature = base64.StdEncoding.EncodeToString(signature)
+	return json.Marshal(wire)
+}
+
+func toWire(keyID string, b Bundle) wireBundle {
 	wire := wireBundle{
 		SchemaVersion: "v1", BundleID: b.BundleID, EngagementID: b.EngagementID, ScopeEpoch: b.ScopeEpoch,
 		NotBefore: b.NotBefore.UTC().Format(time.RFC3339), NotAfter: b.NotAfter.UTC().Format(time.RFC3339),
@@ -176,12 +190,7 @@ func Sign(privateKey ed25519.PrivateKey, keyID string, b Bundle) ([]byte, error)
 	wire.Rate.PerBlockCPS = b.Rate.PerBlockCPS
 	wire.Rate.PerIPPerMin = b.Rate.PerIPPerMin
 	wire.Rate.PerWorkerMaxCPS = b.Rate.PerWorkerMaxCPS
-	canonical, err := canonicalBundle(wire)
-	if err != nil {
-		return nil, err
-	}
-	wire.Signature = base64.StdEncoding.EncodeToString(ed25519.Sign(privateKey, canonical))
-	return json.Marshal(wire)
+	return wire
 }
 
 // canonicalBundle returns the sorted-key canonical JSON of every field except Signature, so

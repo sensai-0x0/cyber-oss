@@ -26,9 +26,14 @@ they named were never built. The boundaries they tested exist, under different n
   `hunterd/scope/*_test.go` and `hunterd/probes/authorizer_wiring_test.go`. `HTTPRunner` never
   follows a redirect at all (`FollowRedirects` is left unset), so "a redirect off-scope is not
   followed" holds by construction there; `TLSRunner`'s L2 `OnValidateTarget` hook re-checks the
-  real socket address on every dial attempt the underlying dialer makes. E03 (fuzz + packet
-  capture against a live lab network) has still never run — this suite proves the Go-level
-  logic, not the on-the-wire guarantee.
+  real socket address on every dial attempt the underlying dialer makes. `HTTPRunner` has no
+  such hook (httpx exposes none), so for a hostname target it resolves and checks every address
+  itself, then pins the dial to one validated address via httpx's `"host,ip"` input form — httpx
+  then has nothing left to resolve independently, closing the DNS-rebinding window a security
+  review found between the L1 check and httpx's own internal lookup
+  (`TestHTTPProbeResolvesAndChecksEveryAddress`). E03 (fuzz + packet capture against a live lab
+  network) has still never run — this suite proves the Go-level logic, not the on-the-wire
+  guarantee.
 
 ## Rules
 

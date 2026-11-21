@@ -2,7 +2,7 @@
 
 Universal rules: [../CLAUDE.md](../CLAUDE.md).
 
-**Purpose.** Approval side of the mitigation boundary. `Approve` and `Reject` in `operator/decision.go` turn a named decision into a signed (or unsigned, rejected) `enforcerd.Action`. `operator/cmd/operator` is the CLI: `keygen` writes an Ed25519 pair; `review` reads an action as JSON on stdin and writes the decision to stdout; `scope sign`/`scope verify` sign and check a `hunterd/scope.Bundle` (fleet plan Phase 1), using a separate key from the mitigation key by design (separation of duties — pass a different `-out-prefix` to `keygen` for it).
+**Purpose.** Approval side of the mitigation boundary. `Approve` and `Reject` in `operator/decision.go` turn a named decision into a signed (or unsigned, rejected) `enforcerd.Action`; `SignScope` in `operator/scope.go` does the equivalent for a `hunterd/scope.Bundle`, calling `scope.CanonicalBytes`/`scope.Assemble` for the non-signing parts (hunterd itself never signs). `operator/cmd/operator` is the CLI: `keygen` writes an Ed25519 pair; `review` reads an action as JSON on stdin and writes the decision to stdout; `scope sign`/`scope verify` sign and check a bundle (fleet plan Phase 1), using a separate key from the mitigation key by design (separation of duties — pass a different `-out-prefix` to `keygen` for it).
 
 **Boundaries**
 

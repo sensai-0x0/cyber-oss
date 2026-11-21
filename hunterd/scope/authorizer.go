@@ -116,9 +116,10 @@ func splitEntries(entries []string) ([]netip.Prefix, []*regexp.Regexp, error) {
 
 func asPrefix(entry string) (netip.Prefix, bool) {
 	if prefix, err := netip.ParsePrefix(entry); err == nil {
-		return prefix, true
+		return unmapPrefix(prefix), true
 	}
 	if addr, err := netip.ParseAddr(entry); err == nil {
+		addr = addr.Unmap()
 		bits := 32
 		if addr.Is6() {
 			bits = 128
@@ -126,6 +127,23 @@ func asPrefix(entry string) (netip.Prefix, bool) {
 		return netip.PrefixFrom(addr, bits), true
 	}
 	return netip.Prefix{}, false
+}
+
+// unmapPrefix normalizes an IPv4-mapped-IPv6 prefix (e.g. "::ffff:10.0.0.5/128") to its plain
+// IPv4 form, matching the Unmap() every checked address already goes through in authorize.
+// Without this, such an entry compares in the 4-in-6 address family and never matches the plain
+// IPv4 form a real dial or DNS resolution produces: harmless for an allow entry (it just fails
+// closed), but for a deny entry it silently fails to exclude the address it names (I5).
+func unmapPrefix(prefix netip.Prefix) netip.Prefix {
+	addr := prefix.Addr()
+	if !addr.Is4In6() {
+		return prefix
+	}
+	bits := prefix.Bits() - 96
+	if bits < 0 {
+		return prefix // narrower than the embedded /32; not a plain-IPv4 range, leave it as-is
+	}
+	return netip.PrefixFrom(addr.Unmap(), bits)
 }
 
 func prefixStrings(prefixes []netip.Prefix) []string {
@@ -232,12 +250,23 @@ func (a *Authorizer) OnValidateTarget(kind Kind) func(hostname, ip, port string)
 		if err != nil {
 			return fmt.Errorf("scope: unparseable dial address %q: %w", ip, err)
 		}
-		parsedPort, err := strconv.ParseUint(port, 10, 16)
+		parsedPort, err := ParsePort(port)
 		if err != nil {
-			return fmt.Errorf("scope: invalid port %q: %w", port, err)
+			return err
 		}
-		return a.authorize(hostname, addr, uint16(parsedPort), kind)
+		return a.authorize(hostname, addr, parsedPort, kind)
 	}
+}
+
+// ParsePort parses a decimal port string, shared by every scope boundary (this package's
+// OnValidateTarget and hunterd/probes' CheckHost callers) so a future bound change cannot land
+// in one and silently miss the other.
+func ParsePort(raw string) (uint16, error) {
+	port, err := strconv.ParseUint(raw, 10, 16)
+	if err != nil {
+		return 0, fmt.Errorf("scope: invalid port %q: %w", raw, err)
+	}
+	return uint16(port), nil
 }
 
 // NetworkPolicy returns the L2 handle for injection into fastdialer.Options.NetworkPolicy and

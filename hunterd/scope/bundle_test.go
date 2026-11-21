@@ -2,6 +2,7 @@ package scope
 
 import (
 	"crypto/ed25519"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,18 @@ func testKey(t *testing.T) (ed25519.PublicKey, ed25519.PrivateKey) {
 		t.Fatal(err)
 	}
 	return public, private
+}
+
+// sign stands in for operator.SignScope, which this package cannot import (operator imports
+// scope, not the reverse). Exercises the same exported CanonicalBytes/Assemble split that the
+// real signer uses, so these tests do not depend on hunterd/scope calling ed25519.Sign itself.
+func sign(t testing.TB, private ed25519.PrivateKey, keyID string, b Bundle) ([]byte, error) {
+	t.Helper()
+	canonical, err := CanonicalBytes(keyID, b)
+	if err != nil {
+		return nil, err
+	}
+	return Assemble(keyID, b, ed25519.Sign(private, canonical))
 }
 
 func testBundle(now time.Time) Bundle {
@@ -39,7 +52,7 @@ func TestSignThenParseRoundTrips(t *testing.T) {
 	public, private := testKey(t)
 	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
 	b := testBundle(now)
-	raw, err := Sign(private, "k1", b)
+	raw, err := sign(t, private, "k1", b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +72,7 @@ func TestSignThenParseRoundTrips(t *testing.T) {
 func TestParseRejectsUnknownKeyID(t *testing.T) {
 	_, private := testKey(t)
 	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
-	raw, err := Sign(private, "k1", testBundle(now))
+	raw, err := sign(t, private, "k1", testBundle(now))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +85,7 @@ func TestParseRejectsUnknownKeyID(t *testing.T) {
 func TestParseRejectsTamperedBody(t *testing.T) {
 	public, private := testKey(t)
 	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
-	raw, err := Sign(private, "k1", testBundle(now))
+	raw, err := sign(t, private, "k1", testBundle(now))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +101,7 @@ func TestParseRejectsTamperedBody(t *testing.T) {
 func TestParseRejectsMalformedSignatureEncoding(t *testing.T) {
 	public, private := testKey(t)
 	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
-	raw, err := Sign(private, "k1", testBundle(now))
+	raw, err := sign(t, private, "k1", testBundle(now))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +118,7 @@ func TestParseRejectsWindowOver24Hours(t *testing.T) {
 	b := testBundle(now)
 	b.NotBefore = now.Add(-time.Minute)
 	b.NotAfter = b.NotBefore.Add(25 * time.Hour)
-	raw, err := Sign(private, "k1", b)
+	raw, err := sign(t, private, "k1", b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +131,7 @@ func TestParseRejectsOutsideWindow(t *testing.T) {
 	public, private := testKey(t)
 	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
 	b := testBundle(now)
-	raw, err := Sign(private, "k1", b)
+	raw, err := sign(t, private, "k1", b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +155,7 @@ func TestParseRejectsLowerEpochButAcceptsEqual(t *testing.T) {
 	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
 	b := testBundle(now)
 	b.ScopeEpoch = 5
-	raw, err := Sign(private, "k1", b)
+	raw, err := sign(t, private, "k1", b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,12 +168,26 @@ func TestParseRejectsLowerEpochButAcceptsEqual(t *testing.T) {
 	}
 }
 
-func TestSignRejectsEmptyTargets(t *testing.T) {
-	_, private := testKey(t)
+func TestCanonicalBytesRejectsEmptyTargets(t *testing.T) {
 	b := testBundle(time.Now())
 	b.Targets = nil
-	if _, err := Sign(private, "k1", b); err != ErrEmptyScope {
+	if _, err := CanonicalBytes("k1", b); err != ErrEmptyScope {
 		t.Fatalf("got %v, want ErrEmptyScope", err)
+	}
+}
+
+func TestParseRejectsWrongLengthPublicKeyWithoutPanicking(t *testing.T) {
+	_, private := testKey(t)
+	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
+	raw, err := sign(t, private, "k1", testBundle(now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A corrupt or mis-generated key file could hand Parse a public key of the wrong length.
+	// ed25519.Verify panics on that rather than returning false; Parse must catch it first.
+	keys := map[string]ed25519.PublicKey{"k1": []byte("too-short")}
+	if _, err := Parse(raw, keys, now, 0); !errors.Is(err, ErrInvalidSignature) {
+		t.Fatalf("got %v, want ErrInvalidSignature", err)
 	}
 }
 
@@ -185,7 +212,7 @@ func extractField(t *testing.T, raw []byte, field string) string {
 func TestFuzzParseNeverPanics(t *testing.T) {
 	public, private := testKey(t)
 	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
-	valid, err := Sign(private, "k1", testBundle(now))
+	valid, err := sign(t, private, "k1", testBundle(now))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +241,7 @@ func TestSignDeterministicCanonicalForm(t *testing.T) {
 		AuthRef:   "SOW-1", Targets: []string{"203.0.113.0/24"}, Ports: []int{443},
 		ProbeKinds: []string{"tls"}, Rate: RateLimits{GlobalCPS: 1, PerBlockCPS: 1, PerIPPerMin: 1, PerWorkerMaxCPS: 1},
 	}
-	raw, err := Sign(private, "k1", b)
+	raw, err := sign(t, private, "k1", b)
 	if err != nil {
 		t.Fatal(err)
 	}
