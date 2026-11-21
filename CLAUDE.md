@@ -20,7 +20,7 @@ An agent with no assigned task does not wait and does not invent new surface are
 
 1. Run the verification list below and fix what fails.
 2. Run `validate_outlines.py` and clear outstanding errors, then warnings, in files no active feature owns.
-3. Work the error log in `.agents/orchestration/obs/errors.md` and the open questions in `.agents/orchestration/obs/state-log.md`, oldest first.
+3. Work the backlog register in `docs/backlog/backlog.md`, the error log in `.agents/orchestration/obs/errors.md` and the open questions in `.agents/orchestration/obs/state-log.md`, oldest first. Append to the backlog rather than carrying an item in conversation; the grammar is in `docs/backlog/README.md`.
 4. Close gaps between a documented invariant and its implementation — several invariants in `.agents/orchestration/invariants.md` currently have no enforcement point, recorded in `spec/DECISIONS/0003-architecture-authority.md`.
 5. Add the missing test before the fix, never after.
 

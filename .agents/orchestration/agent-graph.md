@@ -2,7 +2,8 @@
 
 **Status:** proposed · **Derived from:** superseded by [../../spec/DECISIONS/0003-architecture-authority.md](../../spec/DECISIONS/0003-architecture-authority.md) · **Updated:** 2026-11-21
 
-> Design history, not instructions. The implemented graph is `orchestrator/graph.py`.
+> Design history, not instructions. The implemented graph is `orchestrator/graph.py`. The
+> forward-looking plan for it is [../../plans/agent-graph.md](../../plans/agent-graph.md).
 
 Universal rules: [../CLAUDE.md](../../CLAUDE.md). Tool contracts: [interfaces.md](interfaces.md). Python style: [language-idioms.md](../python-langgraph.md).
 
