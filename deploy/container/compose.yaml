@@ -1,0 +1,158 @@
+name: sentinel-hunter-container
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-hardening: &default-hardening
+  restart: unless-stopped
+  init: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  logging: *default-logging
+
+services:
+  certs-init:
+    build:
+      context: ../..
+      dockerfile: deploy/container/certs.Dockerfile
+    network_mode: none
+    restart: "no"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - nats-certs:/certs
+    logging: *default-logging
+
+  falkordb:
+    <<: *default-hardening
+    image: falkordb/falkordb-server:v4.22.4
+    environment:
+      REDIS_ARGS: >-
+        --requirepass ${FALKORDB_PASSWORD:?Set FALKORDB_PASSWORD in deploy/container/.env}
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory ${FALKORDB_MAXMEMORY:-512mb}
+        --maxmemory-policy noeviction
+      FALKORDB_ARGS: "THREAD_COUNT ${FALKORDB_THREAD_COUNT:-2} TIMEOUT_MAX ${FALKORDB_TIMEOUT_MS:-5000}"
+      REDISCLI_AUTH: ${FALKORDB_PASSWORD:?Set FALKORDB_PASSWORD in deploy/container/.env}
+    volumes:
+      - falkordb-data:/var/lib/falkordb/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 10
+    mem_limit: ${FALKORDB_MEMORY_LIMIT:-768m}
+    pids_limit: 256
+    networks:
+      - graph
+
+  nats:
+    <<: *default-hardening
+    image: nats:2.12-alpine
+    command: ["--config", "/etc/nats/nats.conf"]
+    environment:
+      NATS_PASSWORD: ${NATS_PASSWORD:?Set NATS_PASSWORD in deploy/container/.env}
+    depends_on:
+      certs-init:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - ./nats.conf:/etc/nats/nats.conf:ro
+      - nats-certs:/etc/nats/certs:ro
+      - nats-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 6
+    mem_limit: 256m
+    pids_limit: 128
+    networks:
+      - app
+
+  hunterd:
+    <<: *default-hardening
+    build:
+      context: ../..
+      dockerfile: deploy/container/go.Dockerfile
+      target: hunterd
+    stdin_open: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "/hunterd", "healthcheck", "-addr", "127.0.0.1:50051"]
+      interval: 15s
+      timeout: 4s
+      start_period: 10s
+      retries: 3
+    mem_limit: 256m
+    pids_limit: 128
+    networks:
+      - app
+
+  orchestrator:
+    <<: *default-hardening
+    build:
+      context: ../..
+      dockerfile: deploy/container/python.Dockerfile
+      target: runtime
+    depends_on:
+      falkordb:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    environment:
+      ORCHESTRATOR_HOST: 0.0.0.0
+      ORCHESTRATOR_PORT: "8080"
+      DATABASE_PROVIDER: falkordb
+      FALKORDB_HOST: falkordb
+      FALKORDB_PORT: "6379"
+      FALKORDB_PASSWORD: ${FALKORDB_PASSWORD:?Set FALKORDB_PASSWORD in deploy/container/.env}
+      FALKORDB_DATABASE: ${FALKORDB_DATABASE:-sentinel_lite}
+      GRAPH_REQUIRED: "true"
+      GRAPHITI_TELEMETRY_ENABLED: "false"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/readyz', timeout=2)",
+        ]
+      interval: 15s
+      timeout: 4s
+      start_period: 20s
+      retries: 5
+    mem_limit: ${ORCHESTRATOR_MEMORY_LIMIT:-512m}
+    pids_limit: 256
+    networks:
+      - app
+      - graph
+
+volumes:
+  falkordb-data:
+  nats-certs:
+  nats-data:
+
+networks:
+  app:
+    name: sentinel-app
+  graph:
+    name: sentinel-graph
+    internal: true

@@ -1,0 +1,25 @@
+name: sentinel-hunter-container
+
+services:
+  falkordb:
+    ports:
+      - "127.0.0.1:16379:6379"
+    networks:
+      - graph
+      - debug
+
+  nats:
+    ports:
+      - "127.0.0.1:24222:4222"
+
+  hunterd:
+    ports:
+      - "127.0.0.1:15051:50051"
+
+  orchestrator:
+    ports:
+      - "127.0.0.1:18080:8080"
+
+networks:
+  debug:
+    name: sentinel-debug
