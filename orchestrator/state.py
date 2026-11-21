@@ -1,7 +1,7 @@
 """Shared control-plane state and the versioned Go-to-Python event contract."""
 
 from datetime import datetime
-from typing import Annotated, Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -30,6 +30,7 @@ class Cluster(TypedDict):
 class IntelScore(TypedDict):
     confidence: float
     rationale: list[str]
+    dropped_asserted: NotRequired[list[str]]
 
 
 class Policy(TypedDict, total=False):
@@ -48,4 +49,5 @@ class GraphState(TypedDict, total=False):
     cluster: Cluster
     intel: IntelScore
     policy: Policy
+    proposal: dict[str, Any] | None
     cycles: int

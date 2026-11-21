@@ -6,6 +6,7 @@ Universal rules in [../CLAUDE.md](../CLAUDE.md). Python rules in [python-langgra
 
 | Package | Single responsibility |
 |---|---|
+| `canonjson` | Canonical JSON shared with Python's ledger hashing and the v2 signed bytes (ADR 0005) |
 | `hunterd/cursor` | Keyed Feistel bijection over IPv4 CIDRs; `Range` is the resumable iterator |
 | `hunterd/store` | BadgerDB lifecycle, checkpoints, `DeltaGate` novelty decision |
 | `hunterd/probes` | Run tlsx/httpx, normalize to `Observation` (DeltaEvent v1) |

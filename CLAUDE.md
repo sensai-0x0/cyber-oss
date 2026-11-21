@@ -45,7 +45,7 @@ uv sync --frozen --python 3.12
 uv run ruff check orchestrator .github/scripts
 uv run pytest
 uv run python .github/scripts/validate_skills.py .agents/skills
-docker compose -f deploy/compose.yaml config --quiet
+FALKORDB_PASSWORD=ci-only docker compose -f deploy/compose.yaml config --quiet
 ```
 
 ## Change boundaries

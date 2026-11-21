@@ -8,6 +8,8 @@ Universal rules: [../CLAUDE.md](../CLAUDE.md).
 |---|---|
 | `lab/fake_c2.py` | GET returns JSON staging metadata; no beacon, payload, shell or command execution |
 | `lab/phish_panel.py` | HTML with disabled inputs; every POST returns 403, nothing is read or stored |
+| `lab/generate_campaigns.py` | Seeded synthetic campaign timelines for scorer evals (RFC 5737 and `.example` only, no network) |
+| `lab/fixtures/badlist.v1.json` | Synthetic indicator badlist pinned by hash in `orchestrator/policy.yaml` |
 | `lab/Dockerfile` | Image for both, run by `deploy/compose.yaml` |
 
 **Boundaries**

@@ -14,6 +14,7 @@ var (
 	ErrInvalidTTL       = errors.New("TTL must be greater than zero and no more than 24 hours")
 	ErrDuplicateAction  = errors.New("mitigation action already exists")
 	ErrInvalidAction    = errors.New("invalid mitigation action")
+	ErrVersionTooOld    = errors.New("action schema version is below the enforcer minimum")
 )
 
 type Kind string
@@ -26,16 +27,21 @@ const (
 
 // Action is backend-neutral; Broad actions must be explicitly approved.
 type Action struct {
-	ID         string
-	Kind       Kind
-	Target     string
-	TTL        time.Duration
-	Broad      bool
-	Approved   bool
-	ApprovedBy string
-	CreatedAt  time.Time
-	ExpiresAt  time.Time
-	Signature  string
+	// Version is the signed schema version: "" or "v1", or "v2" (ADR 0005).
+	Version string
+	// EvidenceDigest and LedgerSeq cite the ledger record the operator reviewed. v2 only.
+	EvidenceDigest string
+	LedgerSeq      int64
+	ID             string
+	Kind           Kind
+	Target         string
+	TTL            time.Duration
+	Broad          bool
+	Approved       bool
+	ApprovedBy     string
+	CreatedAt      time.Time
+	ExpiresAt      time.Time
+	Signature      string
 }
 
 type Receipt struct {

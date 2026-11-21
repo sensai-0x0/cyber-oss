@@ -2,3 +2,9 @@
 
 **Status:** active · **Derived from:** agent error reports · **Updated:** 2026-11-21
 
+739a96c6-f998-4e1d-8435-b0d4dfd273ef,validate_outlines rejected pasted policy values in spec/STATE.md:32 and kept CI red,Cite keys and a commit instead of numbers; fixed on branch fix/triage-errors
+0c9f83e7-725e-474e-aad4-160c05e81dc3,git push --delete returns HTTP 403 for remote branches in the cloud session,Delete merged branches in the GitHub UI or from a local machine
+7fa31f19-698c-4f1f-923a-0e217d2cfd70,No Docker daemon in the session so images cannot be built or pulled,Build and run the healthcheck on a machine with Docker before merging .docker/falkordb
+fa027e63-1ac2-437e-b252-c940b2bca7b1,Docker Hub registry API returned TOOMANYREQUESTS for manifest lookups,Authenticate to Docker Hub or retry later; confirm the pinned digest on first build
+55a3ad1c-634a-4939-8615-55e938b3166a,docker compose config failed when FALKORDB_PASSWORD was unset because the variable is required,CI and docs now pass FALKORDB_PASSWORD=ci-only for config checks
+0adebf0d-2964-43a6-a286-675c4e10ad3a,Graphiti stock Anthropic client forces tool_choice and sends temperature which current Claude models reject,Write a small LLM client subclass in Phase 3 of plans/graph-store

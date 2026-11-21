@@ -1,0 +1,17 @@
+{
+  "favicon_mmh3": [
+    "-1111111111",
+    "-2222222222"
+  ],
+  "ja3": [
+    "0ab6049b9d6b7d3621b950ebeea324d3",
+    "4764c6a10088d335d41e6d6543502a43"
+  ],
+  "jarm": [
+    "15c8d80a5688f8669996c5c4f66c73df029bee902bcccfa5617534f336539f",
+    "05d4cd586d1cc383855939d72ebc9a55bddf110dc7ed65d529557864d45198"
+  ],
+  "note": "Lab-only synthetic indicators. Not real threat intelligence.",
+  "synthetic": true,
+  "version": "v1"
+}

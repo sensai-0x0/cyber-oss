@@ -1,0 +1,19 @@
+{
+  "httpx": [
+    "favicon_mmh3",
+    "ip",
+    "page_type",
+    "status_code",
+    "title",
+    "web_server"
+  ],
+  "tlsx": [
+    "certificate_not_after",
+    "common_name",
+    "host",
+    "ip",
+    "ja3",
+    "jarm",
+    "sans"
+  ]
+}

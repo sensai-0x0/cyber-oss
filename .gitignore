@@ -16,3 +16,5 @@ deploy/certs/generated/
 checkpoints/
 .worktrees/
 *.env
+*.sqlite
+.claude/worktrees/*
